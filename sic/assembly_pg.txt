@@ -1,8 +1,8 @@
-**    START      
-**    LDA     A
-**    ADD     B
-**    STA     C
-**    RSUB
+**  START   1000   
+**  LDA     A
+**  ADD     B
+**  STA     C
+**  RSUB
 A   WORD    3
 B   WORD    5
 C   RESW    1
