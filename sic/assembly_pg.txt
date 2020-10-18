@@ -1,0 +1,9 @@
+**    START      
+**    LDA     A
+**    ADD     B
+**    STA     C
+**    RSUB
+A   WORD    3
+B   WORD    5
+C   RESW    1
+**    END
