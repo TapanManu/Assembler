@@ -12,8 +12,40 @@ string line;
 
 char codes[3][5];
 char temp[30];
+char val[20];
+
+stack<int> s;
 
 ifstream fin;
+
+void decToHex(int ctr){
+    while(ctr>0){
+        char ch=65;
+        int d = ctr%16;
+        if(d>9 && d<16){
+            ch = int(ch) + d - 10;
+        }
+        else{
+            ch = d;
+        }
+        s.push(int(ch));
+        ctr/=16;
+    }
+    int i=0;
+    while(!s.empty()){
+        if(s.top()>=65 && s.top()<=90){
+            
+            val[i]=(char)s.top();
+            i++;
+        }
+        else{
+            val[i]=s.top()+48;      //char equivalent of num
+            i++;
+        }
+        s.pop();
+    }
+    val[i++]='\0';
+}
 
 int charToInt(char str[],int x){
     if(x<0)
@@ -52,7 +84,8 @@ void writeToIntermediate(int locctr,char opcode[],char operand[],int clear){
         fout.open("intermediate_file.txt",ios::out);
     else
         fout.open("intermediate_file.txt",ios::app);
-    fout<<locctr<<"\t"<<opcode<<"\t"<<operand<<"\n";
+    decToHex(locctr);
+    fout<<val<<"\t"<<opcode<<"\t"<<operand<<"\n";
     fout.close();
 }
 
@@ -66,7 +99,8 @@ void writeToIntermediate(string err){
 void write_symtab(char label[],int locctr){
     ofstream out;
     out.open("symtab.txt",ios::app);
-    out<<label<<"\t"<<locctr<<"\n";
+    decToHex(locctr);
+    out<<label<<"\t"<<val<<"\n";
     out.close();
 }
 
