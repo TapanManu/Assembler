@@ -181,7 +181,7 @@ int main(){
         char line[25];
         strcpy(line,s.c_str());
         objcode(line);
-        /* obj code perfect correction now create object file*/
+        /* obj code perfect correction now create object file */
     }
     return 0;
 }
