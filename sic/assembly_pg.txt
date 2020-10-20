@@ -1,4 +1,4 @@
-**  START   1000   
+**  START   1000
 **  LDA     A
 **  ADD     B
 **  STA     C
