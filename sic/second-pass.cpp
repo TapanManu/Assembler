@@ -242,8 +242,24 @@ void head_record(char* line){
     fout.close();
 }
 
-void text_record(){
+char text[45];
+void init_text_record(){
+    // initialize text record
+}
 
+void commit_text_record(){
+    //commits the current record if its length exceeds 69bytes or 
+    //35 hexa values
+    //or if RESB or RESW occurs
+    //or end of program
+}
+
+void end_record(){
+    //writes end record
+}
+
+void write_listfile(){
+    //list file writing
 }
 
 int main(){
