@@ -142,6 +142,21 @@ int search_optab(char opcode[]){
     ip.close();
     return found;
 }
+void write_length(int leng){
+    ofstream f;
+    char value[20];
+    f.open("pgmlength.txt",ios::out);
+    decToHex(leng);
+    char zero[]="0";
+    strcpy(value,val);
+    while(strlen(value)<4){
+        strcpy(zero,"0");
+        strcat(zero,value);
+        strcpy(value,zero);
+    }
+    f<<value;
+    f.close();
+}
 
 void read_from_assembly(){
     static int linecount=1;
@@ -156,7 +171,11 @@ void read_from_assembly(){
     sscanf(temp,"%s\t%s\t%s",label,opcode,operand);
 
     if(!strcmp(opcode,"END")) {         //return if opcode=END
+        decToHex(start);
+        strcpy(operand,val);
         writeToIntermediate(prevloc,opcode,operand,0);
+        int pgmlength=locctr-start;
+        write_length(pgmlength);
         return;
     }
 

@@ -172,16 +172,94 @@ void objcode(char* line){
     }
 }
 
+void prepend(char* str,int len){
+    char zero[2]="0";
+    char temp[20];
+    strcpy(temp,str);
+    while(strlen(temp)<len){
+       strcpy(zero,"0");
+       strcat(zero,temp);
+       strcpy(temp,zero);
+    }
+    strcpy(str,temp);
+}
+
+void head_record(char* line){
+    ifstream fin;
+    ofstream fout;
+    char head[30];
+    string ch,ch1,ch2;
+    char str[25],addr[10];
+    head[0]='H';
+    head[1]='|';
+    fin.open("assembly_pg.txt",ios::in);
+    fin>>ch;
+    fin>>ch1;
+    fin>>ch2;
+    fin.close();
+    strcpy(str,ch.c_str());
+    int i=2;
+    if(!strcmp(str,"**")){
+        while(i<7){
+            head[i++]=' ';
+        }    
+    }
+    else{ 
+        int k=0;
+        while(i<7){
+            head[i++]=str[k++];
+        }
+    }
+    head[7]='|';
+    strcpy(addr,ch2.c_str());
+    int len = strlen(addr);
+    int c = charToInt(addr,len-1);
+    decToHex(c);
+    prepend(val,6);
+    int k=0;
+    i=8;
+    while(i<14){
+        head[i++]=val[k++];
+    }
+    head[14]='|';
+    ifstream fi;
+    fi.open("pgmlength.txt",ios::in);
+    fi>>ch;
+    char tmp[10];
+    strcpy(tmp,ch.c_str());
+    prepend(tmp,6);
+    fi.close();
+    i=15;
+    k=0;
+    while(i<21){
+        head[i++]=tmp[k];
+        cout<<"xx"<<tmp[k];
+        k++;
+    }
+    head[22]='\0';
+    fout.open("objcode.txt",ios::out);
+    fout<<head;
+    fout.close();
+}
+
+void text_record(){
+
+}
+
 int main(){
     string s;
     ifstream f;
+    char text[20];
     f.open("intermediate_file.txt",ios::in);
     getline(f,s);
+    strcpy(text,s.c_str());
+    head_record(text);
     while(getline(f,s)){
         char line[25];
         strcpy(line,s.c_str());
         objcode(line);
         /* obj code perfect correction now create object file */
     }
+    
     return 0;
 }
