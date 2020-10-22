@@ -6,6 +6,8 @@ using namespace std;
 
 char obj[10],opc[10],addr[10],operand[10],val[20];
 char err[] = "error";
+int endp = 0;
+int y=0;
 
 stack <int> s;
 
@@ -101,13 +103,27 @@ char* translate_oper(char* op,int x){
     return err;
 }
 
-void objcode(char* line){
+void prepend(char* str,int len){
+    char zero[2]="0";
+    char temp[20];
+    strcpy(temp,str);
+    while(strlen(temp)<len){
+       strcpy(zero,"0");
+       strcat(zero,temp);
+       strcpy(temp,zero);
+    }
+    strcpy(str,temp);
+}
+
+void objcode(char* line,char* obj,char *oper,char* text,int y){
     char opcode[20],locctr[10],operand[10],opr[10];
     int x = 0;
     char zero[2]="0";
     sscanf(line,"%s\t%s\t%s\t",locctr,opcode,operand);
-    if(!strcmp(opcode,"END"))
+    if(!strcmp(opcode,"END")){
+        endp = 1;
         return;
+    }
     int len = strlen(operand);
     if(operand[len-2]==','){            //whether index addressing used
         if(charToInt(operand,len-1)>1){
@@ -116,7 +132,6 @@ void objcode(char* line){
         }
         strcpy(operand,opr);
     }
-    char obj[25],oper[25];
     strcpy(obj,translate_opcode(opcode));
     if(!strcmp(obj,"error")){
         if(!strcmp(opcode,"RESW")||!strcmp(opcode,"RESB")){
@@ -126,9 +141,8 @@ void objcode(char* line){
             strcpy(obj,"00");
         }
     }
-    cout<<obj;
     if(!strcmp(obj,"4C"))
-        cout<<"0000"<<"\n";
+        strcpy(obj,"0000");
     else{
         strcpy(oper,translate_oper(operand,x));   
         if(!strcmp(oper,"error")){
@@ -168,21 +182,16 @@ void objcode(char* line){
                 }
             }
         }
-        cout<<oper<<"\n";
+        if(!strcmp(obj,"4C")){
+            strcpy(oper,"0000");
+        }
+        prepend(oper,4);
+      
     }
+    
 }
 
-void prepend(char* str,int len){
-    char zero[2]="0";
-    char temp[20];
-    strcpy(temp,str);
-    while(strlen(temp)<len){
-       strcpy(zero,"0");
-       strcat(zero,temp);
-       strcpy(temp,zero);
-    }
-    strcpy(str,temp);
-}
+
 
 void head_record(char* line){
     ifstream fin;
@@ -206,6 +215,7 @@ void head_record(char* line){
     }
     else{ 
         int k=0;
+        
         while(i<7){
             head[i++]=str[k++];
         }
@@ -233,26 +243,111 @@ void head_record(char* line){
     k=0;
     while(i<21){
         head[i++]=tmp[k];
-        cout<<"xx"<<tmp[k];
         k++;
     }
     head[22]='\0';
     fout.open("objcode.txt",ios::out);
-    fout<<head;
+    fout<<head<<"\n";
     fout.close();
 }
 
 char text[45];
-void init_text_record(){
-    // initialize text record
+void init_text_record(char* text,char* oper){
+    char temp[8];
+    text[0]='T';
+    text[1]='|';
+    strcpy(temp,oper);
+    prepend(temp,6);
+    int k=0,i=2;
+    while(k<6){
+        text[i++]=temp[k++];
+    }
+    text[i++]='|';
 }
 
-void commit_text_record(){
-    //commits the current record if its length exceeds 69bytes or 
-    //35 hexa values
-    //or if RESB or RESW occurs
-    //or end of program
+int write_text_record(char* text,char* object_code,int j){
+    char ob[25];
+    int l = strlen(object_code);
+    int k=0;
+    strcpy(ob,object_code);
+    while(k<l){
+        text[j]=ob[k];
+        cout<<"value at j:"<<text[j]<<"\n";
+        j++;
+        k++;
+    }
+    text[j++]='|';
+    return j;
 }
+
+void commit_record(char* text){
+    ofstream fo;
+    cout<<"yyyyyy\n";
+    fo.open("objcode.txt",ios::app);
+    fo<<text<<"\n";
+    fo.close();
+}
+
+void text_record(){
+    ifstream f;
+    f.open("intermediate_file.txt",ios::in);
+    char obj[25],oper[25];
+    int i;
+    int j=12;
+    string s;
+    getline(f,s);
+    int record_length=0;
+    
+    y=0;            //var to indicate end of record
+    char text[80];
+    while(getline(f,s)){
+        char line[25];
+        strcpy(line,s.c_str());
+        objcode(line,obj,oper,text,y);
+        if( y==0 ){
+            init_text_record(text,oper);
+            y=1;
+        }
+        strcat(obj,oper);
+        cout<<j<<"\n";
+        j=write_text_record(text,obj,j);
+        record_length+=1;
+        if(record_length==8){
+            strcpy(val,"");
+            decToHex((j-10)/2);      //length is to be converted into hexadecimals
+            prepend(val,2);
+            text[9]=val[0];
+            text[10]=val[1];
+            text[11]='|';
+            text[j++]='\0';
+
+            commit_record(text);
+            y=0;
+            j=12;
+            record_length=0;
+        }
+        if(endp==1){        //end record 
+            strcpy(val,"");
+            decToHex((j-10)/2);      //length is to be converted into hexadecimals
+            prepend(val,2);
+            text[9]=val[0];
+            text[10]=val[1];
+            text[11]='|';
+            text[j++]='\0';
+
+            commit_record(text);
+            y=0;
+            j=12;
+            return;
+        } 
+    }
+ //   fo<<text<<"\n";
+    f.close();
+}
+
+
+
+
 
 void end_record(){
     //writes end record
@@ -268,14 +363,10 @@ int main(){
     char text[20];
     f.open("intermediate_file.txt",ios::in);
     getline(f,s);
+    f.close();
     strcpy(text,s.c_str());
     head_record(text);
-    while(getline(f,s)){
-        char line[25];
-        strcpy(line,s.c_str());
-        objcode(line);
-        /* obj code perfect correction now create object file */
-    }
+    text_record();
     
     return 0;
 }
