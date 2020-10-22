@@ -6,7 +6,7 @@ using namespace std;
 
 char obj[10],opc[10],addr[10],operand[10],val[20];
 char err[] = "error";
-int endp = 0;
+int endp = 0,endt = 0;
 int y=0;
 
 stack <int> s;
@@ -121,6 +121,8 @@ void objcode(char* line,char* obj,char *oper,char* text,int y){
     char zero[2]="0";
     sscanf(line,"%s\t%s\t%s\t",locctr,opcode,operand);
     if(!strcmp(opcode,"END")){
+        strcpy(oper,operand);
+        prepend(oper,6);
         endp = 1;
         return;
     }
@@ -136,18 +138,21 @@ void objcode(char* line,char* obj,char *oper,char* text,int y){
     if(!strcmp(obj,"error")){
         if(!strcmp(opcode,"RESW")||!strcmp(opcode,"RESB")){
             strcpy(obj,"  ");
+            endt = 1;
         }
         if(!strcmp(opcode,"WORD")||!strcmp(opcode,"BYTE")){
             strcpy(obj,"00");
         }
     }
-    if(!strcmp(obj,"4C"))
-        strcpy(obj,"0000");
+    if(!strcmp(obj,"4C")){
+            strcpy(oper,"0000");
+        }
     else{
         strcpy(oper,translate_oper(operand,x));   
         if(!strcmp(oper,"error")){
             if(!strcmp(opcode,"RESW")||!strcmp(opcode,"RESB")){
                 strcpy(oper,"    ");
+
             }
             if(!strcmp(opcode,"WORD")||!strcmp(opcode,"BYTE")){
                 if(!strcmp(opcode,"BYTE")){
@@ -182,9 +187,7 @@ void objcode(char* line,char* obj,char *oper,char* text,int y){
                 }
             }
         }
-        if(!strcmp(obj,"4C")){
-            strcpy(oper,"0000");
-        }
+        
         prepend(oper,4);
       
     }
@@ -257,6 +260,9 @@ void init_text_record(char* text,char* oper){
     text[0]='T';
     text[1]='|';
     strcpy(temp,oper);
+    if(!strcmp(temp,"    ")){
+        strcpy(temp,"0000");
+    }
     prepend(temp,6);
     int k=0,i=2;
     while(k<6){
@@ -270,6 +276,8 @@ int write_text_record(char* text,char* object_code,int j){
     int l = strlen(object_code);
     int k=0;
     strcpy(ob,object_code);
+    //cout<<"xx"<<ob<<"xx";
+    
     while(k<l){
         text[j]=ob[k];
         cout<<"value at j:"<<text[j]<<"\n";
@@ -282,16 +290,23 @@ int write_text_record(char* text,char* object_code,int j){
 
 void commit_record(char* text){
     ofstream fo;
-    cout<<"yyyyyy\n";
+    //cout<<"yyyyyy\n";
     fo.open("objcode.txt",ios::app);
     fo<<text<<"\n";
     fo.close();
 }
 
+void end_record(char oper[]){
+    ofstream fout;
+    fout.open("objcode.txt",ios::app);
+    fout<<"E"<<"|"<<oper<<"\n";
+    fout.close();
+}
+
 void text_record(){
     ifstream f;
     f.open("intermediate_file.txt",ios::in);
-    char obj[25],oper[25];
+    char obj[25],oper[25],locctr[8],opcode[6];
     int i;
     int j=12;
     string s;
@@ -305,14 +320,21 @@ void text_record(){
         strcpy(line,s.c_str());
         objcode(line,obj,oper,text,y);
         if( y==0 ){
-            init_text_record(text,oper);
+            sscanf(line,"%s\t%s\t%s\t",locctr,opcode,operand);
+            
+            init_text_record(text,locctr);
             y=1;
         }
+        
         strcat(obj,oper);
-        cout<<j<<"\n";
-        j=write_text_record(text,obj,j);
+        //cout<<obj<<"\n";
+        //cout<<j<<"\n";
+        if(strcmp(oper,"    ")){
+            if(endp!=1)
+                j=write_text_record(text,obj,j);
+        }
         record_length+=1;
-        if(record_length==8){
+        if(record_length==8 || endt==1 ){
             strcpy(val,"");
             decToHex((j-10)/2);      //length is to be converted into hexadecimals
             prepend(val,2);
@@ -320,11 +342,13 @@ void text_record(){
             text[10]=val[1];
             text[11]='|';
             text[j++]='\0';
-
-            commit_record(text);
+            if(strcmp(obj," "))
+                commit_record(text);
             y=0;
             j=12;
             record_length=0;
+            endt=0;
+            continue;
         }
         if(endp==1){        //end record 
             strcpy(val,"");
@@ -334,23 +358,16 @@ void text_record(){
             text[10]=val[1];
             text[11]='|';
             text[j++]='\0';
-
-            commit_record(text);
+            if(!strstr(obj," "))
+                commit_record(text);
             y=0;
             j=12;
+            end_record(oper);
             return;
         } 
     }
  //   fo<<text<<"\n";
     f.close();
-}
-
-
-
-
-
-void end_record(){
-    //writes end record
 }
 
 void write_listfile(){

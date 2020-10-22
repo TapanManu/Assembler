@@ -1,4 +1,4 @@
-**  START   1000
+FIRST  START   1000
 **  LDX     ZERO
 **  LDA     ZERO
 **  STA     INDEX
