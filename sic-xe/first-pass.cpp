@@ -1,6 +1,7 @@
 #include <iostream>
 #include <bits/stdc++.h>
 #include <fstream>
+#include "sicxe.h"
 using namespace std;
 
 char val[20],valprev[20];
@@ -13,22 +14,6 @@ int locctr=0;
 int err_flag=0;
 int lineno=0;
 
-int get_opcode_length(string opcode){
-    fstream opstream;
-    int length=0;
-    string line,comp;
-    opstream.open("optab.txt",ios::in);
-    while(getline(opstream,line)){
-        stringstream ops(line);
-        ops >> comp;
-        if(!strcmp(comp.c_str(),opcode.c_str())){
-            ops >> length;
-            return length;
-        }
-    }
-    return 0;
-}
-
 int find_length(string operand){
     if(operand.at(0)=='X'){
         return strlen((operand.c_str())-3)/2+1;
@@ -39,38 +24,6 @@ int find_length(string operand){
     }
     return 0;
 }
-
-int valid_opcode(string opcode){
-    fstream opstream;
-    
-    string line,comp;
-    opstream.open("optab.txt",ios::in);
-    while(getline(opstream,line)){
-        stringstream ops(line);
-        ops >> comp;
-        if(!strcmp(comp.c_str(),opcode.c_str())){
-           // cout<<opcode<<comp;
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int search_symtab(string label){
-    fstream symstream;
-    string line,comp;
-    symstream.open("symtab.txt",ios::in);
-    while(getline(symstream,line)){
-        stringstream syms(line);
-        syms >> comp;
-        if(!strcmp(comp.c_str(),label.c_str())){
-            cout<<comp<<label;
-            return 0;
-        }
-    }
-    return 1;
-}
-
 
 void decToHex(int ctr){
     while(ctr>0){
