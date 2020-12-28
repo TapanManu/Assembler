@@ -1,4 +1,3 @@
-
 0000 FIBO    START  0
 0000 FIRST   LDT    #1
 0003        LDS    #10

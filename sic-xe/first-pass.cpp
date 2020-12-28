@@ -1,7 +1,6 @@
 #include <iostream>
 #include <bits/stdc++.h>
 #include <fstream>
-#include "sicxe.h"
 using namespace std;
 
 char val[20],valprev[20];
@@ -13,6 +12,83 @@ int prevctr=0;
 int locctr=0;
 int err_flag=0;
 int lineno=0;
+int search_symtab(string label)
+{
+    fstream symstream;
+    string line, comp;
+    symstream.open("symtab.txt", ios::in);
+    while (getline(symstream, line))
+    {
+        stringstream syms(line);
+        syms >> comp;
+        if (!strcmp(comp.c_str(), label.c_str()))
+        {
+            cout << comp << label;
+            return 1; //if element present
+        }
+    }
+    return 0; //if not present
+}
+
+int valid_opcode(string opcode)
+{
+    fstream opstream;
+
+    string line, comp;
+    opstream.open("optab.txt", ios::in);
+    while (getline(opstream, line))
+    {
+        stringstream ops(line);
+        ops >> comp;
+        if (!strcmp(comp.c_str(), opcode.c_str()))
+        {
+            // if opcode is present
+            return 1;
+        }
+    }
+    return 0; //if not
+}
+
+int get_opcode_length(string opcode)
+{
+    fstream opstream;
+    int length = 0;
+    string line, comp;
+    opstream.open("optab.txt", ios::in);
+    while (getline(opstream, line))
+    {
+        stringstream ops(line);
+        ops >> comp;
+        if (!strcmp(comp.c_str(), opcode.c_str()))
+        {
+            ops >> length;
+            return length;
+        }
+    }
+    return 0;
+}
+
+string get_opcode_value(string opcode)
+{
+    fstream opstream;
+    int length = 0;
+    string value;
+    string line, comp;
+    opstream.open("optab.txt", ios::in);
+    while (getline(opstream, line))
+    {
+        stringstream ops(line);
+        ops >> comp;
+        if (!strcmp(comp.c_str(), opcode.c_str()))
+        {
+            ops >> length;
+            ops >> value;
+            return value;
+        }
+    }
+    return NULL;
+}
+
 
 int find_length(string operand){
     if(operand.at(0)=='X'){
@@ -60,7 +136,7 @@ void update_locctr(string opcode,string operand){
         return;         //no need of update
     }
     if(opcode.at(0)=='+'){
-        if(valid_opcode(opcode.substr(1,opcode.length()+1))){
+        if(valid_opcode(opcode.substr(1,opcode.length()-1))){
             int oplen = get_opcode_length(opcode.substr(1,opcode.length()+1));
             if(oplen==3)
                 locctr+=4;
@@ -99,7 +175,7 @@ void update_locctr(string opcode,string operand){
 void clear_file(string filename){
     fstream symtab;
     symtab.open(filename,ios::out);
-    symtab<<"\n";
+    symtab<<"";
     symtab.close();
 }
 
@@ -146,10 +222,13 @@ void first_pass(string label,string opcode,string operand){
         return;
     }
     if(strcmp(label.c_str(),"")){
-        if(search_symtab(label)){
+        if(!search_symtab(label)){
             insert_symtab(label);
         }
-        else err_flag = 2;
+        else {
+            err_flag = 2;
+        }
+        
     }
     
     update_locctr(opcode,operand);
