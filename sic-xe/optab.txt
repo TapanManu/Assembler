@@ -2,7 +2,7 @@ ADD      3          18
 ADDF     3          58    
 ADDR     2          90    
 AND      3          40    
-CLEAR    2           4    
+CLEAR    2          B4    
 COMP     3          28                          
 COMPF    3          88                           
 COMPR    2          A0    

@@ -12,6 +12,17 @@ char zero[2]="0";
 int err_flag=0;
 char val[20];
 string obj_code;
+string pgm_name;
+string TEXT;
+string TEXT_START;
+
+int init=0;   //indicates text record to be initialised or not
+
+int txt_length=0;
+
+
+int pgmstart = 0;
+int pgmlength = 0;
 
 int lineno=0;
 
@@ -214,7 +225,17 @@ string xbpe(int x,int b,int p,int e){
     int dec = bits.to_ulong();  //binary to decimal
     decToHex(dec);
     string result(val);
+    if(result==""){
+        return "0";
+    }
     return result;
+}
+
+void clear_file(string filename){
+    fstream symtab;
+    symtab.open(filename,ios::out);
+    symtab<<"";
+    symtab.close();
 }
 
 string to_up(string ch){
@@ -223,6 +244,84 @@ string to_up(string ch){
         res = res + (char)toupper(ch.at(i));
     }
     return res;
+}
+
+void write_header(string pgm_name,string start_addr){
+    fstream fobj;
+    string header;
+    fobj.open("temp.obj",ios::app);
+    while(start_addr.length()<=5){
+        start_addr = "0" + start_addr;
+    }
+    header = "H^"+pgm_name+"^"+start_addr;
+    fobj << header <<"\n";
+    fobj.close();
+}
+
+void update_header(string pgm_name){
+    fstream fobj;
+    string header;
+    fobj.open(pgm_name+".obj",ios::app);
+    fobj.seekg(0,ios::beg);
+    string start_addr = to_string(pgmstart);
+    decToHex(pgmlength);
+    string pgm_length = val;
+    while(start_addr.length()<=5){
+        start_addr = "0" + start_addr;
+    }
+
+    while(pgm_length.length()<=5){
+        pgm_length = "0" + pgm_length;
+    }   
+    header = "H^"+pgm_name+"^"+start_addr+"^"+pgm_length;
+    fobj << header << "\n";
+    fobj.close();
+}
+
+
+
+void init_text(string loc){
+    
+    while(loc.length()<=5){
+        loc = "0" + loc;
+    }
+    TEXT_START = "T^" + loc +"^";
+    txt_length=0;
+}
+
+void append_text(string obj_code){
+    TEXT = TEXT + "^" + obj_code;
+    txt_length+=obj_code.length();
+}
+
+void write_text_record(){
+    fstream fobj;
+    fobj.open("temp.obj",ios::app);
+    decToHex(txt_length/2);
+    while(strlen(val)<=1){
+        strcpy(zero,"0");
+        strcat(zero,val);
+        strcpy(val,zero);
+    }
+    TEXT = TEXT_START + val + TEXT;
+    fobj << TEXT << "\n";
+    fobj.close();
+    TEXT = "";
+    
+}
+
+void write_end_record(){
+    fstream fobj;
+    fobj.open(pgm_name+".obj",ios::app);
+    decToHex(pgmstart);
+    string END;
+    string start = val;
+    while(start.length()<=5){
+        start = "0" + start;
+    }
+    END = "E^" + start;
+    fobj << END <<"\n";
+    fobj.close();
 }
 
 void opcode_processor(string loc,string opcode,string operand){
@@ -258,8 +357,8 @@ void opcode_processor(string loc,string opcode,string operand){
         // cout << locvalue;
         int nextlocvalue = hexToDec(to_string(locvalue)) + format;
         if(format==1){
-            //format 1 has only opcode no operand
-            obj_code = value;
+            //only opcode for format 1
+            obj_code = value ;
             return;
         }
         if(format==2){
@@ -367,7 +466,32 @@ void opcode_processor(string loc,string opcode,string operand){
 
 
 void second_pass(string loc,string label,string opcode,string operand){
-    if(!strcmp(opcode.c_str(),"END") || !strcmp(opcode.c_str(),"START") || opcode.compare(" ")==0){
+    
+    if(init>=1){
+        if(txt_length>0){
+            write_text_record();
+            
+        }
+        //empty text records are not written
+        if(strcmp(opcode.c_str(),"RESW") || (strcmp(opcode.c_str(),"RESB"))
+        ||(strcmp(opcode.c_str(),"END"))){
+            init=0;
+            init_text(loc);
+        }
+    }
+    if(!strcmp(opcode.c_str(),"START")){
+        pgm_name = label;
+        clear_file("temp.obj");
+        clear_file(pgm_name+".obj");
+        /*write_header(pgm_name,operand);*/
+        init_text(loc);
+        return;
+    }
+    if(!strcmp(opcode.c_str(),"END")){
+        if(txt_length>0){
+        write_text_record();
+        }
+        //empty text records are not written
         return; 
     }
     else if(!strcmp(opcode.c_str(),"BYTE")){
@@ -383,6 +507,13 @@ void second_pass(string loc,string label,string opcode,string operand){
            constant = operand.substr(2,operand.length()-3);
         }
         cout << " objcode:" <<constant;
+        if(txt_length + constant.length() <=60)
+            append_text(constant);
+        else{
+            init = 2;
+            obj_code = constant;
+        }
+        
         return;
     }
     else if(!strcmp(opcode.c_str(),"WORD")){
@@ -392,15 +523,36 @@ void second_pass(string loc,string label,string opcode,string operand){
                 strcat(zero,val);
                 strcpy(val,zero);
             }
-        cout<<val;
+        if(txt_length + strlen(val) <= 60)
+            append_text(val);
+        else{
+            init = 2;
+            obj_code = val;
+            write_text_record();
+            init_text(loc);
+            append_text(obj_code);
+        }
+        return;
     }
     else if(!strcmp(opcode.c_str(),"RESW")|| !strcmp(opcode.c_str(),"RESB")){
+        
+        // current text record is broken and written
+        init = 1;
         return;
     }
     else if(valid_opcode(opcode)){   
         cout<<"\t";
         opcode_processor(loc,opcode,operand);
         cout<<"objcode:"<<obj_code;
+        if(txt_length + obj_code.length() <= 60)
+            append_text(obj_code);
+        else {
+            init = 2;
+            write_text_record();
+            init_text(loc);
+            append_text(obj_code);
+            
+        }
         return;
     }
     else{
@@ -419,7 +571,21 @@ void second_pass(string loc,string label,string opcode,string operand){
         cout<<"displacement beyond range , error at line "<<lineno<<"\n";
         exit(1);
     }
+    
     //it is assumed intermediate file is free of syntax errors after first pass 
+}
+
+void transfer_text_record(string source,string dest){
+    ifstream fin;
+    ofstream fout;
+    fin.open(source,ios::in);
+    fout.open(dest+".obj",ios::app);
+    string line;
+    while(getline(fin,line)){
+        fout<<line<<"\n";
+    }
+    fin.close();
+    fout.close();
 }
 
 
@@ -428,7 +594,7 @@ void second_pass(string loc,string label,string opcode,string operand){
 
 int main(int argc,char* argv[]){
     fstream source;
-    int pgmstart = 0;
+    
     string line,loc,label,opcode,operand;
     source.open(argv[1],ios::in);
     if(source.is_open()){
@@ -450,7 +616,14 @@ int main(int argc,char* argv[]){
             //cout<<"loc:"<<loc<<" label:"<<label<<" opcode:"<<opcode<<" operand:"<<operand;
             second_pass(loc,label,opcode,operand);
             cout<<"\n";
+            if(lineno==1){
+                pgmstart = hexToDec(loc);
+            }
         }
+        pgmlength = hexToDec(loc) - pgmstart;
+        update_header(pgm_name);
+        transfer_text_record("temp.obj",pgm_name);
+        write_end_record();
     }
     else{
         cout<<"source file cannot be located";
