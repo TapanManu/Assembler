@@ -230,6 +230,10 @@ void opcode_processor(string loc,string opcode,string operand){
         string value;
         int add = 0;        //value to be added to opcode
         int format=0;
+        if(!strcmp(opcode.c_str(),"RSUB")){
+            obj_code = "4F0000";
+            return;
+        }
         if(opcode.at(0)=='+'){
             value = get_opcode_value(opcode.substr(1,opcode.length()-1));
             format = 4;
@@ -243,6 +247,8 @@ void opcode_processor(string loc,string opcode,string operand){
             format = get_opcode_length(opcode);
         }
         int locvalue=0;
+
+        
                
         stringstream s;
         s <<  hex << (stoi(loc)&0xfff);
@@ -258,11 +264,15 @@ void opcode_processor(string loc,string opcode,string operand){
         }
         if(format==2){
             obj_code = value + register_operands(operand);
+            while(obj_code.length()<=3){
+                obj_code = obj_code + "0";
+            }
             return;
         }
         if(operand.at(0)=='#'){
             add = 1;
             operand = operand.substr(1,operand.length()-1);
+            p = 0;
         }
         else if(operand.at(0)=='@'){
             add = 2;
@@ -297,11 +307,9 @@ void opcode_processor(string loc,string opcode,string operand){
                 r = to_up(res.str());
             }
             else if(format==3){
-                cout<<"next:"<<nextlocvalue;
-                cout<<"operand_loc:"<<operand_loc;
             if(operand_loc > nextlocvalue){
                 
-                disp = nextlocvalue - operand_loc;
+                disp = operand_loc -  nextlocvalue;
                 res << setfill('0') << setw(3) << hex << (disp&0xfff);
                 //oxfff is hex value of 4095
                 //simple way to convert to hexadecimal code
@@ -317,7 +325,7 @@ void opcode_processor(string loc,string opcode,string operand){
                 
             }
             else{
-                disp = nextlocvalue - operand_loc;
+                disp = operand_loc - nextlocvalue;
                 res << setfill('0') << setw(3) << hex << (disp&0xfff);
                 if(disp > 2047){
                     b = 1;
@@ -341,6 +349,11 @@ void opcode_processor(string loc,string opcode,string operand){
                 //cout<<"value:"<<v;
                 decToHex(v);
             }
+            while(strlen(val)<=1){      //for opcode starting with 0 to come
+                strcpy(zero,"0");
+                strcat(zero,val);
+                strcpy(val,zero);
+            }
             string valop(val);
             //cout<<"valop:"<<valop;
             obj_code = valop + resval + r;
@@ -358,17 +371,19 @@ void second_pass(string loc,string label,string opcode,string operand){
         return; 
     }
     else if(!strcmp(opcode.c_str(),"BYTE")){
-        if(operand.at(0)=='C'){
-            string constant = operand.substr(operand.at(2),operand.length()-3);
+       string constant;
+       if(operand.at(0)=='C'){
+            constant = operand.substr(2,operand.length()-3);
             decToHex(stoi(constant));
             //now val contains the hex constant
             cout<<val;
+            constant = val;
         }
         else if(operand.at(0)=='X'){
-            string constant = operand.substr(operand.at(2),operand.length()-3);
-            
-            cout<<constant;
+           constant = operand.substr(2,operand.length()-3);
         }
+        cout << " objcode:" <<constant;
+        return;
     }
     else if(!strcmp(opcode.c_str(),"WORD")){
         decToHex(stoi(operand));
@@ -420,7 +435,6 @@ int main(int argc,char* argv[]){
         while(getline(source,line)){
             lineno++;
             stringstream ss(line);
-            cout<<"line:"<<line;
             if(ss>>loc>>label>>opcode>>operand){
                 ;
             }
@@ -432,7 +446,8 @@ int main(int argc,char* argv[]){
                 label="";opcode="";operand="";
                 s>>loc>>opcode>>operand;
             }
-           // cout<<"loc:"<<loc<<" label:"<<label<<" opcode:"<<opcode<<" operand:"<<operand;
+            cout<<loc<<" ";
+            //cout<<"loc:"<<loc<<" label:"<<label<<" opcode:"<<opcode<<" operand:"<<operand;
             second_pass(loc,label,opcode,operand);
             cout<<"\n";
         }
