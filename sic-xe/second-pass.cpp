@@ -26,7 +26,7 @@ int search_symtab(string label)
         syms >> comp;
         if (!strcmp(comp.c_str(), label.c_str()))
         {
-            cout << comp << label;
+            //cout << comp << label;
             return 1; //if element present
         }
     }
@@ -43,6 +43,9 @@ int valid_opcode(string opcode)
     {
         stringstream ops(line);
         ops >> comp;
+        if(opcode.at(0)=='+'){
+            opcode = opcode.substr(1,opcode.length()-1);
+        }
         if (!strcmp(comp.c_str(), opcode.c_str()))
         {
             // if opcode is present
@@ -89,7 +92,7 @@ string get_opcode_value(string opcode)
             return value;
         }
     }
-    return NULL;
+    return "";
 }
 
 
@@ -175,7 +178,7 @@ string read_register(char reg){
         }
     }
     err_flag = 4;   //invalid register error
-    return NULL;
+    return "";
 }
 
 string register_operands(string operand){
@@ -231,6 +234,9 @@ void opcode_processor(string loc,string opcode,string operand){
             value = get_opcode_value(opcode.substr(1,opcode.length()-1));
             format = 4;
             e = 1;
+            p = 0;
+            b = 0;
+            //modification record needed
         }
         else{
             value = get_opcode_value(opcode);
@@ -244,7 +250,7 @@ void opcode_processor(string loc,string opcode,string operand){
         string r;
         s >> locvalue;
         // cout << locvalue;
-        int nextlocvalue = locvalue + format;
+        int nextlocvalue = hexToDec(to_string(locvalue)) + format;
         if(format==1){
             //format 1 has only opcode no operand
             obj_code = value;
@@ -281,7 +287,7 @@ void opcode_processor(string loc,string opcode,string operand){
             else{
             operand_loc = read_symtab(operand);
             if(operand_loc==-1){
-                cout<<"error-operand";
+                //cout<<"error-operand";
                 err_flag = 2;
                 return;
             }
@@ -291,7 +297,10 @@ void opcode_processor(string loc,string opcode,string operand){
                 r = to_up(res.str());
             }
             else if(format==3){
+                cout<<"next:"<<nextlocvalue;
+                cout<<"operand_loc:"<<operand_loc;
             if(operand_loc > nextlocvalue){
+                
                 disp = nextlocvalue - operand_loc;
                 res << setfill('0') << setw(3) << hex << (disp&0xfff);
                 //oxfff is hex value of 4095
@@ -371,10 +380,10 @@ void second_pass(string loc,string label,string opcode,string operand){
         cout<<val;
     }
     else if(!strcmp(opcode.c_str(),"RESW")|| !strcmp(opcode.c_str(),"RESB")){
-            return;
-            //no object code created
+        return;
     }
-    else if(valid_opcode(opcode)){      //here + opcode is coming
+    else if(valid_opcode(opcode)){   
+        cout<<"\t";
         opcode_processor(loc,opcode,operand);
         cout<<"objcode:"<<obj_code;
         return;
@@ -423,7 +432,7 @@ int main(int argc,char* argv[]){
                 label="";opcode="";operand="";
                 s>>loc>>opcode>>operand;
             }
-            cout<<"loc:"<<loc<<" label:"<<label<<" opcode:"<<opcode<<" operand:"<<operand;
+           // cout<<"loc:"<<loc<<" label:"<<label<<" opcode:"<<opcode<<" operand:"<<operand;
             second_pass(loc,label,opcode,operand);
             cout<<"\n";
         }
