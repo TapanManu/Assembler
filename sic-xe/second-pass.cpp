@@ -15,6 +15,8 @@ string obj_code;
 string pgm_name;
 string TEXT;
 string TEXT_START;
+string MODIFY="";
+int modify=0;
 
 int init=0;   //indicates text record to be initialised or not
 
@@ -310,6 +312,29 @@ void write_text_record(){
     
 }
 
+void update_modification(string loc,string obj_code){
+    
+    int v = hexToDec(loc);
+    v = v+1;               //skip one byte for opcode
+    decToHex(v);
+    string l = val;
+    while(l.length()<=5){
+        l = "0" + l;
+    }
+    string mod_length = to_string(obj_code.length() - 3);
+    while(mod_length.length()<=1){
+        mod_length = "0" + mod_length; 
+    }
+    MODIFY = MODIFY + "M^" + l + "^" + mod_length + "\n";
+}
+
+void write_modification_record(){
+    fstream fout;
+    fout.open(pgm_name+".obj",ios::app);
+    fout << MODIFY;
+    fout.close();
+}
+
 void write_end_record(){
     fstream fobj;
     fobj.open(pgm_name+".obj",ios::app);
@@ -329,6 +354,7 @@ void opcode_processor(string loc,string opcode,string operand){
         string value;
         int add = 0;        //value to be added to opcode
         int format=0;
+        modify=0;
         if(!strcmp(opcode.c_str(),"RSUB")){
             obj_code = "4F0000";
             return;
@@ -339,6 +365,7 @@ void opcode_processor(string loc,string opcode,string operand){
             e = 1;
             p = 0;
             b = 0;
+            modify=1;
             //modification record needed
         }
         else{
@@ -356,6 +383,12 @@ void opcode_processor(string loc,string opcode,string operand){
         s >> locvalue;
         // cout << locvalue;
         int nextlocvalue = hexToDec(to_string(locvalue)) + format;
+        if(operand.find(",X")!=string::npos){
+                operand = operand.substr(0,operand.length()-2);
+                x = 1;
+                b = 0;
+                p = 1;
+            }
         if(format==1){
             //only opcode for format 1
             obj_code = value ;
@@ -371,6 +404,7 @@ void opcode_processor(string loc,string opcode,string operand){
         if(operand.at(0)=='#'){
             add = 1;
             operand = operand.substr(1,operand.length()-1);
+            
             p = 0;
         }
         else if(operand.at(0)=='@'){
@@ -382,16 +416,19 @@ void opcode_processor(string loc,string opcode,string operand){
         }
 
         if(search_symtab(operand)|| add==1 ){ //add=1 indicates constant
-            if(operand.find(",X")!=string::npos){
-                x = 1;
-                b = 0;
-                p = 1;
-            }
+        
+            
             int operand_loc=0;
             if(add==1){
+                //cout<<operand;
+                if(format==4){
+                    res << setfill('0') << setw(5) << hex << (stoi(operand));
+                    modify = 0;     //no modification needed for constants
+                }
+                else{
                 res << setfill('0') << setw(3) << hex << (stoi(operand)&0xfff);
+                }
                 r = to_up(res.str());
-                //cout<<r;
             }
             else{
             operand_loc = read_symtab(operand);
@@ -498,10 +535,15 @@ void second_pass(string loc,string label,string opcode,string operand){
        string constant;
        if(operand.at(0)=='C'){
             constant = operand.substr(2,operand.length()-3);
-            decToHex(stoi(constant));
-            //now val contains the hex constant
-            cout<<val;
-            constant = val;
+            //cout<<constant;
+            string value="";
+            for(auto c:constant){
+                decToHex(c);
+                value=value+val;
+            }
+            //cout<<value;
+            constant = value;
+            
         }
         else if(operand.at(0)=='X'){
            constant = operand.substr(2,operand.length()-3);
@@ -544,13 +586,20 @@ void second_pass(string loc,string label,string opcode,string operand){
         cout<<"\t";
         opcode_processor(loc,opcode,operand);
         cout<<"objcode:"<<obj_code;
-        if(txt_length + obj_code.length() <= 60)
+        if(txt_length + obj_code.length() <= 60){
             append_text(obj_code);
+            if(modify==1){
+                update_modification(loc,obj_code);
+            }
+        }
         else {
             
             write_text_record();
             init_text(loc);
             append_text(obj_code);
+            if(modify==1){
+                update_modification(loc,obj_code);
+            }
             
         }
         return;
@@ -612,6 +661,7 @@ int main(int argc,char* argv[]){
                 label="";opcode="";operand="";
                 s>>loc>>opcode>>operand;
             }
+            
             cout<<loc<<" ";
             //cout<<"loc:"<<loc<<" label:"<<label<<" opcode:"<<opcode<<" operand:"<<operand;
             second_pass(loc,label,opcode,operand);
@@ -623,6 +673,7 @@ int main(int argc,char* argv[]){
         pgmlength = hexToDec(loc) - pgmstart;
         update_header(pgm_name);
         transfer_text_record("temp.obj",pgm_name);
+        write_modification_record();
         write_end_record();
     }
     else{
