@@ -510,7 +510,7 @@ void second_pass(string loc,string label,string opcode,string operand){
         if(txt_length + constant.length() <=60)
             append_text(constant);
         else{
-            init = 2;
+            
             obj_code = constant;
         }
         
@@ -526,7 +526,7 @@ void second_pass(string loc,string label,string opcode,string operand){
         if(txt_length + strlen(val) <= 60)
             append_text(val);
         else{
-            init = 2;
+            
             obj_code = val;
             write_text_record();
             init_text(loc);
@@ -547,7 +547,7 @@ void second_pass(string loc,string label,string opcode,string operand){
         if(txt_length + obj_code.length() <= 60)
             append_text(obj_code);
         else {
-            init = 2;
+            
             write_text_record();
             init_text(loc);
             append_text(obj_code);
