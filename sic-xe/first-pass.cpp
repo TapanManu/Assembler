@@ -16,7 +16,7 @@ int search_symtab(string label)
 {
     fstream symstream;
     string line, comp;
-    symstream.open("symtab.txt", ios::in);
+    symstream.open(pgmname+"_symtab.txt", ios::in);
     while (getline(symstream, line))
     {
         stringstream syms(line);
@@ -181,7 +181,7 @@ void clear_file(string filename){
 
 void insert_symtab(string label){
     fstream symtab;
-    symtab.open("symtab.txt",ios::app);
+    symtab.open(pgmname+"_symtab.txt",ios::app);
     decToHex(locctr);
     
     while(strlen(val)<=3){

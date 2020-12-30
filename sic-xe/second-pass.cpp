@@ -32,7 +32,7 @@ int search_symtab(string label)
 {
     fstream symstream;
     string line, comp;
-    symstream.open("symtab.txt", ios::in);
+    symstream.open(pgm_name+"_symtab.txt", ios::in);
     while (getline(symstream, line))
     {
         stringstream syms(line);
@@ -165,7 +165,7 @@ int hexToDec(string hexVal)
 int read_symtab(string operand){
     fstream symstream;
     string line,comp;
-    symstream.open("symtab.txt",ios::in);
+    symstream.open(pgm_name+"_symtab.txt",ios::in);
     while(getline(symstream,line)){
         stringstream syms(line);
         syms >> comp;
@@ -591,17 +591,15 @@ void second_pass(string loc,string label,string opcode,string operand){
             if(modify==1){
                 update_modification(loc,obj_code);
             }
-        }
-        else {
-            
-            write_text_record();
-            init_text(loc);
-            append_text(obj_code);
+            }
+            else{
+                write_text_record();
+                init_text(loc);
+                append_text(obj_code);
             if(modify==1){
                 update_modification(loc,obj_code);
             }
-            
-        }
+            }
         return;
     }
     else{
