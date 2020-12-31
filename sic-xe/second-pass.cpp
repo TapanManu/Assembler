@@ -6,7 +6,8 @@ using namespace std;
 
 stack <int> s;
 
-int base=1000;     //value stored in base register
+int base=0;         //base flag
+int baseloc;
 //loaded only in ldb instruction and base directive
 char zero[2]="0";
 int err_flag=0;
@@ -206,19 +207,64 @@ string register_operands(string operand){
 
 }
 
-string process_base(int operand_loc){
-    int disp = operand_loc - base;
-    stringstream res;
-    string r;
-    res << setfill('0') << setw(3) << hex << (disp&0xfff);  
-    if(disp > 4095 || disp < -4095){
-        err_flag = 5;   //beyond limit
-        return NULL;
-    }
-    else{
-        r = res.str();
-    }
-    return r;
+string process_base(string operand,int dest,int format){
+		int ind=search_symtab(operand);
+		if(ind>=0){
+		
+			stringstream str;
+			
+			signed int x;   
+			stringstream ss;
+			ss << hex << read_symtab(operand);
+			ss >> x;
+	
+			int y = dest;
+	
+			y=x-y;
+            //cout<<y;
+			stringstream res;
+			string r;
+			
+			if(format==3){
+				if(y<0)
+				{	if(y<-4096){
+						cout<<"\n memory overflow"<<endl;
+					}
+					res<<setfill('0') << setw(5)<<hex<<(y&0xfff);
+					
+						
+				r=res.str();
+				
+				
+				}
+				else
+				{	if(y>4095){
+						cout<<"\n memory overflow"<<endl;
+					}
+					res<<setfill('0') << setw(3)<<hex<<(y&0xfff);
+				r=res.str();}
+				
+			}
+				
+			else if(format==4){
+				if(y<0){
+				res<<setfill('0') << setw(5)<<hex<<(y&0xfffff);
+				r=res.str();
+				
+				}
+				else{res<<setfill('0') << setw(5)<<hex<<(y&0xfffff);r=res.str();}
+				//int l=r.length();
+				
+			}
+
+
+			
+			
+			
+			return r;
+	}
+	else
+		return "00000";	
 }
 
 string xbpe(int x,int b,int p,int e){
@@ -355,10 +401,12 @@ void opcode_processor(string loc,string opcode,string operand){
         int add = 0;        //value to be added to opcode
         int format=0;
         modify=0;
+        int disp;
         if(!strcmp(opcode.c_str(),"RSUB")){
             obj_code = "4F0000";
             return;
         }
+        //cout<<operand;
         if(opcode.at(0)=='+'){
             value = get_opcode_value(opcode.substr(1,opcode.length()-1));
             format = 4;
@@ -375,14 +423,14 @@ void opcode_processor(string loc,string opcode,string operand){
         int locvalue=0;
 
         
-               
+        
         stringstream s;
-        s <<  hex << (stoi(loc)&0xfff);
+        s <<  hex << (loc);
         stringstream res;
         string r;
         s >> locvalue;
-        // cout << locvalue;
-        int nextlocvalue = hexToDec(to_string(locvalue)) + format;
+        
+        int nextlocvalue = (locvalue) + format;
         if(operand.find(",X")!=string::npos){
                 operand = operand.substr(0,operand.length()-2);
                 x = 1;
@@ -414,13 +462,17 @@ void opcode_processor(string loc,string opcode,string operand){
         else{
             add = 3; 
         }
-
+        
         if(search_symtab(operand)|| add==1 ){ //add=1 indicates constant
         
             
             int operand_loc=0;
             if(add==1){
-                //cout<<operand;
+                if(search_symtab(operand)){
+                    p = 1;
+                    baseloc = read_symtab(operand);
+                    goto label;
+                }
                 if(format==4){
                     res << setfill('0') << setw(5) << hex << (stoi(operand));
                     modify = 0;     //no modification needed for constants
@@ -431,30 +483,36 @@ void opcode_processor(string loc,string opcode,string operand){
                 r = to_up(res.str());
             }
             else{
-            operand_loc = read_symtab(operand);
+   label:   operand_loc = read_symtab(operand);
+            
             if(operand_loc==-1){
                 //cout<<"error-operand";
                 err_flag = 2;
                 return;
             }
-            int disp;
+            
             if(format==4){
                 res << setfill('0') << setw(5) << hex << (operand_loc);
                 r = to_up(res.str());
             }
             else if(format==3){
-            if(operand_loc > nextlocvalue){
-                
+            if(operand_loc < nextlocvalue){
+                //cout<<operand_loc<<" "<<nextlocvalue;
                 disp = operand_loc -  nextlocvalue;
+                //cout<<disp;
                 res << setfill('0') << setw(3) << hex << (disp&0xfff);
                 //oxfff is hex value of 4095
                 //simple way to convert to hexadecimal code
                 if(disp<-2048){
+                    if(base==1){
+                    //cout<<"yyyyyy";
                     b = 1;
                     p = 0;
-                    r = to_up(process_base(operand_loc));
+                    r = to_up(process_base(operand,baseloc,format));
+                    }
                 }
                 else{
+                    
                     r = to_up(res.str());
                 }
 
@@ -462,11 +520,16 @@ void opcode_processor(string loc,string opcode,string operand){
             }
             else{
                 disp = operand_loc - nextlocvalue;
+                //cout<<"Y"<<operand_loc<<" "<<nextlocvalue;
+                //cout<<disp;
                 res << setfill('0') << setw(3) << hex << (disp&0xfff);
                 if(disp > 2047){
+                    if(base==1){
+                    
                     b = 1;
                     p = 0;
-                    r = to_up(process_base(operand_loc));
+                    r = to_up(process_base(operand,baseloc,format));
+                    }
                 }
                 else{
                     r = to_up(res.str());
@@ -531,6 +594,22 @@ void second_pass(string loc,string label,string opcode,string operand){
         //empty text records are not written
         return; 
     }
+    else if(!strcmp(opcode.c_str(),"BASE")){
+        if(search_symtab(operand)){
+            base = 1;
+            return;
+        }
+        else{
+            err_flag = 1;
+        }
+        return ;
+
+    }
+    else if(!strcmp(opcode.c_str(),"NOBASE")){
+        base = 0;
+        return ;
+
+    }
     else if(!strcmp(opcode.c_str(),"BYTE")){
        string constant;
        if(operand.at(0)=='C'){
@@ -584,6 +663,7 @@ void second_pass(string loc,string label,string opcode,string operand){
     }
     else if(valid_opcode(opcode)){   
         cout<<"\t";
+        
         opcode_processor(loc,opcode,operand);
         cout<<"objcode:"<<obj_code;
         if(txt_length + obj_code.length() <= 60){
@@ -657,7 +737,7 @@ int main(int argc,char* argv[]){
                 stringstream s(line);
                 loc="";
                 label="";opcode="";operand="";
-                s>>loc>>opcode>>operand;
+                s>>loc>>label>>opcode>>operand;
             }
             
             cout<<loc<<" ";

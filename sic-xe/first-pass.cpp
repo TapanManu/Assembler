@@ -216,7 +216,11 @@ void first_pass(string label,string opcode,string operand){
         }
         stringstream ss(operand);
         if(ss >> locctr); else locctr=0;
+        clear_file(pgmname+"_symtab.txt");
         clear_file(pgmname+"_intermediate.txt"); 
+    }
+    else if(!strcmp(opc,"BASE")){
+        return;
     }
     if(!strcmp(opc,"END")){
         return;
@@ -255,7 +259,7 @@ int main(int argc,char* argv[]){
     string label,opcode,operand;
     string line;
     source.open(argv[1],ios::in);
-    clear_file("symtab.txt");
+    
     if(source.is_open()){
         while(getline(source,line)){
             lineno++;
@@ -276,9 +280,12 @@ int main(int argc,char* argv[]){
                 
             }
             cout<<"label:"<<label<<"opcode:"<<opcode<<"operand:"<<operand<<endl;
-            
+                
             first_pass(label,opcode,operand);
-            write_intermediate(line);
+            if(label.compare("")==0){
+                label = "***";
+            }
+            write_intermediate(label+" "+opcode+" "+operand);
         }
     }
     else{
