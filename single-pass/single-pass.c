@@ -120,6 +120,7 @@ void add_forward_list(char name[],char operand[]){
 void pass(char label[],char opcode[],char operand[]){
     char value[20];
     char* opvalue;
+    char* symval;
     int i;
     
     if(!strcmp(opcode,"START")){
@@ -161,6 +162,11 @@ void pass(char label[],char opcode[],char operand[]){
         locctr+=3;
         printf("%d\n",locctr);
         
+    }
+    symval = read_symtab(label);
+    if(!strcmp(symval,"")){
+        if(strcmp(label,""))
+            insert_symtab(label);
     }
 }
 
