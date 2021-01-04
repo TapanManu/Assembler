@@ -6,11 +6,14 @@
 char pgmname[25]; 
 int err_flag=0;
 char objcode[7];
-char *OBJ;
+char *sub;
+char zero[2]="0";
 char opvalue[5];
 char symvalue[20];
 char undef[20];
-int locctr = 0;
+int locctr = 0,start = 0;
+int pgmlen=0;
+char res[10];
 
 void create_symtab(){
     FILE *fileptr;
@@ -19,14 +22,46 @@ void create_symtab(){
     fclose(fileptr);
 }
 
+// function to convert decimal to hexadecimal 
+char* decToHexa(int n) {    
+    // char array to store hexadecimal number 
+    char hexaDeciNum[10]; 
+    
+    // counter for hexadecimal number array 
+    int i = 0; 
+    int k = 0;
+    while(n!=0){    
+        // temporary variable to store remainder 
+        int temp  = 0; 
+        // storing remainder in temp variable. 
+        temp = n % 16; 
+        // check if temp < 10 
+        if(temp < 10) { 
+            hexaDeciNum[i] = temp + 48; 
+            i++; 
+        } 
+        else{ 
+            hexaDeciNum[i] = temp + 55; 
+            i++; 
+        } 
+        n = n/16; 
+    } 
+    // printing hexadecimal number array in reverse order 
+    for(int j=i-1; j>=0; j--) 
+        res[k++] = hexaDeciNum[j];
+    res[k]='\0';
+    return res; 
+} 
+
 
 void insert_symtab(char symbol[]){
     FILE *fileptr;
     fileptr = fopen("symtab.txt","a");
     printf("%s",symbol);
     strcat(symbol," ");
-    char loc[10];
-    sprintf(loc, "%d", locctr);
+    char* loc;
+    loc = decToHexa(locctr);
+    //sprintf(loc, "%d", locctr);
     strcat(symbol,loc);
     strcat(symbol,"\n");
     fputs(symbol,fileptr);
@@ -75,7 +110,7 @@ char* read_optab(char search[]){
 
 char* substr(char* str,int beg,int end){
     int len = end - beg + 1;
-    char sub[len];
+    sub = (char*)malloc(len);
     int i = beg;
     int j=0;
     while(beg < end){
@@ -105,9 +140,9 @@ int find(char* str,char * substr){
     return -1;
 }
 
-void add_forward_list(char name[],char operand[]){
+void add_forward_list(char operand[]){
     FILE *fileptr;
-    fileptr = fopen(strcat(name,"_forward_list.txt"),"a");
+    fileptr = fopen("forward_list.txt","a");
     strcat(operand," ");
     char loc[10];
     sprintf(loc, "%d", locctr+1);
@@ -119,55 +154,78 @@ void add_forward_list(char name[],char operand[]){
 
 void pass(char label[],char opcode[],char operand[]){
     char value[20];
-    char* opvalue;
-    char* symval;
+    char* opvalue,*obj;
+    char* symval,*operval;
     int i;
     
     if(!strcmp(opcode,"START")){
         sscanf(operand,"%d",&i);
         locctr = i;
-        printf("%d\n",locctr);
+        start = i;
+        //printf("%d\n",locctr);
     }
     else if(!strcmp(opcode,"END")){
+        pgmlen = locctr + 3 - start;
         return;
     }
     else if(!strcmp(opcode,"RESW")){
         sscanf(operand,"%d",&i);
         locctr+=3*i;
-        printf("%d\n",locctr);
+        //printf("%d\n",locctr);
+        return;
     }
     else if(!strcmp(opcode,"RESB")){
         sscanf(operand,"%d",&i);
         locctr+=i;
-        printf("%d\n",locctr);
+        //printf("%d\n",locctr);
+        return;
     }
     else if(!strcmp(opcode,"BYTE")){
         if(find(operand,"X'")!=-1){
             int len = strlen(operand);
             operand = substr(operand,2,len);
             locctr+= (len - 3)/2;
+            
         }
         else if(find(operand,"C'")!=-1){
             int len = strlen(operand);
             operand = substr(operand,2,len);
             locctr+= (len - 3);
         }
-        printf("%d\n",locctr);
+        strcpy(obj,"");
+        //printf("%d\n",locctr);
     }
-    else if(!strcmp(opcode,"WORD") || !strcmp(opcode,"RSUB")){
-        locctr+=3;
-        printf("%d\n",locctr);
-    }
-    else if((opvalue = read_optab(opcode))!=NULL){
+    else if(!strcmp(opcode,"WORD")){
         locctr+=3;
         printf("%d\n",locctr);
         
     }
+    else if(!strcmp(opcode,"RSUB")){
+        locctr+=3;
+        //printf("%d\n",locctr);
+        strcpy(obj,"4F0000");
+        printf("%s",obj);
+        return;
+    }
+    else if((opvalue = read_optab(opcode))!=NULL){
+        locctr+=3;
+        /*operval = read_symtab(operand);
+        if(!strcmp(operval,"")){
+        //handling forward reference
+            add_forward_list(operval);
+        }
+        else{*/
+        
+       // strcat(obj,operval);
+        
+    }
     symval = read_symtab(label);
     if(!strcmp(symval,"")){
-        if(strcmp(label,""))
+        if(strcmp(label,"")){ 
             insert_symtab(label);
+        }
     }
+    
 }
 
 
