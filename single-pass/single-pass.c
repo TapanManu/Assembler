@@ -7,20 +7,23 @@ char pgmname[25];
 int err_flag=0;
 char objcode[7];
 char *OBJ;
-char *FORWARD_LIST;
+char opvalue[5];
+char symvalue[20];
 char undef[20];
 int locctr = 0;
 
-void create_symtab(char name[]){
+void create_symtab(){
     FILE *fileptr;
-    fileptr = fopen(strcat(name,"_symtab.txt"),"w");
+    fileptr = fopen("symtab.txt","w");
+    fputs("",fileptr);
     fclose(fileptr);
 }
 
 
-void insert_symtab(char name[],char symbol[]){
+void insert_symtab(char symbol[]){
     FILE *fileptr;
-    fileptr = fopen(strcat(name,"_symtab.txt"),"a");
+    fileptr = fopen("symtab.txt","a");
+    printf("%s",symbol);
     strcat(symbol," ");
     char loc[10];
     sprintf(loc, "%d", locctr);
@@ -30,36 +33,76 @@ void insert_symtab(char name[],char symbol[]){
     fclose(fileptr);
 }
 
-char* read_symtab(char name[],char search[]){
+char* read_symtab(char search[]){
     FILE *fileptr;
-    char line[255],sym[20],value[20];
+    char lin1[255],sym[20];
+    fileptr = fopen("symtab.txt","r");
     if(!strcmp(search,"")){
-        return "x";
+        return "";
     }
-    fileptr = fopen(strcat(name,"_symtab.txt"),"r");
-    while(fgets(line,255,fileptr)){
-        sscanf(line,"%s %s",sym,value);
-        printf("xxx%s",sym);
+   
+   
+    while(fgets(lin1,255,fileptr)){
+        sscanf(lin1,"%s %s",sym,symvalue);
+        if(!strcmp(sym,"0")){
+            continue;
+        }
+        
         if(!strcmp(sym,search)){
-           return value;
+           return symvalue;
         }
     }
+    
     fclose(fileptr);
-    return "x";
+    return "";
+    
 }
 
 char* read_optab(char search[]){
     FILE *fileptr;
-    char line[255],op[20],value[5];
+    char line[255],op[20],l[20];
     fileptr = fopen("optab.txt","r");
     while(fgets(line,255,fileptr)){
-        sscanf(line,"%s %s",op,value);
+        sscanf(line,"%s %s %s",op,l,opvalue);
+       // printf("%s ---- %s",op,search);
         if(!strcmp(op,search)){
-            return value;
+            return opvalue;
         }
     }
     fclose(fileptr);
     return NULL;
+}
+
+char* substr(char* str,int beg,int end){
+    int len = end - beg + 1;
+    char sub[len];
+    int i = beg;
+    int j=0;
+    while(beg < end){
+        sub[j++] = str[i++];
+    }
+    sub[j]='\0';
+    return sub;
+}
+
+int find(char* str,char * substr){
+    int i=0;
+    int j=0;
+    int index = -1;
+    for(i=0;i<strlen(str);i++){
+        if(substr[j]==str[i]){
+            if(j==0)
+                index = i;
+            j++;
+        }
+        else{
+            j = 0;
+        }
+    }
+    if(j == strlen(substr)){
+        return index;
+    }
+    return -1;
 }
 
 void add_forward_list(char name[],char operand[]){
@@ -76,119 +119,49 @@ void add_forward_list(char name[],char operand[]){
 
 void pass(char label[],char opcode[],char operand[]){
     char value[20];
-    char subop[30];
-    int x = 0;
+    char* opvalue;
     int i;
     
-    if(strcmp(label,"")){
-       // read_symtab(pgmname,label);  ==> segmentation fault error
-       // strcpy(value,read_symtab(pgmname,label));
-        printf("%s",label);
+    if(!strcmp(opcode,"START")){
+        sscanf(operand,"%d",&i);
+        locctr = i;
+        printf("%d\n",locctr);
     }
-    if(!strcmp(value,"")){
-        //no symbol present
-        insert_symtab(pgmname,label);
+    else if(!strcmp(opcode,"END")){
+        return;
     }
-    
-    else if(!strcmp(value,operand)){
-        char opvalue[5];
-        strcpy(opvalue,read_optab(opcode));
-        if(!strcmp(opvalue,"")){
-            if(!strcmp(opcode,"START")){
-                sscanf(operand,"%d",&i);
-                locctr=i;
-                return;
-            }
-            else if(!strcmp(opcode,"END")){
-                //check forward list empty or not
-
-                return;
-            }
-            else if(!strcmp(opcode,"RESW")){
-                sscanf(operand,"%d",&i);
-                locctr+=3*i;
-            }
-            else if(!strcmp(opcode,"RESB")){
-                sscanf(operand,"%d",&i);
-                locctr+=i;
-            }
-            else if(!strcmp(opcode,"BYTE")){
-                if(operand[0]=='C'){
-                    memcpy(subop,&operand,2);
-                    int len = strlen(operand) - 2;
-                    subop[len] = '\0';
-                    locctr +=len;
-                }
-                else if (operand[0]=='X'){
-                    memcpy(subop,&operand,2);
-                    int len = strlen(operand) - 2;
-                    subop[len] = '\0';
-                    locctr +=(len/2);
-                }
-                
-            }
-            else if(!strcmp(opcode,"WORD")){
-                locctr+=3;
-            }
-            else{
-                err_flag = 2;
-            }
+    else if(!strcmp(opcode,"RESW")){
+        sscanf(operand,"%d",&i);
+        locctr+=3*i;
+        printf("%d\n",locctr);
+    }
+    else if(!strcmp(opcode,"RESB")){
+        sscanf(operand,"%d",&i);
+        locctr+=i;
+        printf("%d\n",locctr);
+    }
+    else if(!strcmp(opcode,"BYTE")){
+        if(find(operand,"X'")!=-1){
+            int len = strlen(operand);
+            operand = substr(operand,2,len);
+            locctr+= (len - 3)/2;
         }
-        else{
-            strcpy(objcode,opvalue);
-            
-            if(strstr(operand,",X")!=NULL){
-                int len = strlen(operand) - 2;
-                memcpy(subop,&operand[len],0);
-                subop[len] = '\0';
-                strcpy(operand,subop);
-                locctr +=3;
-                x = 1;
-            }
-            strcpy(opvalue,read_symtab(pgmname,operand));
-            if(!strcmp(opvalue,"")){
-                add_forward_list(pgmname,operand);
-            }
-            else{
-                if(x==1){
-                    if(isdigit(operand[0])){
-                        int v = operand[0] - '0';
-                        v = v + 8;
-                        operand[0] = (char)v + '0';
-                    }
-                    else{
-                        int v = operand[0] - 'a';
-                        v = v + 8;
-                        operand[0] = (char)v + 'a';
-                    }
-                    strcpy(objcode,operand);
-                }
-                else{
-                    //convert to hex
-                strcpy(objcode,operand);
-                }
-            }
-            
+        else if(find(operand,"C'")!=-1){
+            int len = strlen(operand);
+            operand = substr(operand,2,len);
+            locctr+= (len - 3);
         }
-    
-
+        printf("%d\n",locctr);
     }
-    else if(!strcmp(value,label)){
-        //duplication
-        err_flag = 1;
+    else if(!strcmp(opcode,"WORD") || !strcmp(opcode,"RSUB")){
+        locctr+=3;
+        printf("%d\n",locctr);
     }
-
-
-
-    if(err_flag == 1){
-        printf("duplication symbol error");
-        exit(1);
+    else if((opvalue = read_optab(opcode))!=NULL){
+        locctr+=3;
+        printf("%d\n",locctr);
+        
     }
-    else if(err_flag == 2){
-        printf("unknown object code error");
-        exit(1);
-    }
-    
 }
 
 
@@ -196,11 +169,8 @@ void pass(char label[],char opcode[],char operand[]){
 int main(int argc, char* argv[]){
     //single pass assembler design
     FILE *fp;
-
-    
-
     strcpy(pgmname,argv[1]);
-    create_symtab(pgmname);
+    create_symtab();
     fp = fopen(argv[1],"r");
     char line[255],label[20],opcode[20],operand[20];
     
@@ -215,7 +185,7 @@ int main(int argc, char* argv[]){
             label[0]=0;
         }
         pass(label,opcode,operand);
-        printf("label:%s\n opcode:%s\n operand:%s\n",label,opcode,operand);
+        //printf("label:%s\n opcode:%s\n operand:%s\n",label,opcode,operand);
     }
     fclose(fp);
     return 0;
