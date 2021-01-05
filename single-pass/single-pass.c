@@ -162,7 +162,7 @@ void pass(char label[],char opcode[],char operand[]){
         sscanf(operand,"%d",&i);
         locctr = i;
         start = i;
-        //printf("%d\n",locctr);
+        printf("%d\n",locctr);
     }
     else if(!strcmp(opcode,"END")){
         pgmlen = locctr + 3 - start;
@@ -171,14 +171,14 @@ void pass(char label[],char opcode[],char operand[]){
     else if(!strcmp(opcode,"RESW")){
         sscanf(operand,"%d",&i);
         locctr+=3*i;
-        //printf("%d\n",locctr);
-        return;
+        printf("%d\n",locctr);
+        
     }
     else if(!strcmp(opcode,"RESB")){
         sscanf(operand,"%d",&i);
         locctr+=i;
-        //printf("%d\n",locctr);
-        return;
+        printf("%d\n",locctr);
+        
     }
     else if(!strcmp(opcode,"BYTE")){
         if(find(operand,"X'")!=-1){
@@ -193,7 +193,7 @@ void pass(char label[],char opcode[],char operand[]){
             locctr+= (len - 3);
         }
         strcpy(obj,"");
-        //printf("%d\n",locctr);
+        printf("%d\n",locctr);
     }
     else if(!strcmp(opcode,"WORD")){
         locctr+=3;
@@ -202,24 +202,18 @@ void pass(char label[],char opcode[],char operand[]){
     }
     else if(!strcmp(opcode,"RSUB")){
         locctr+=3;
-        //printf("%d\n",locctr);
-        strcpy(obj,"4F0000");
-        printf("%s",obj);
+        printf("%d\n",locctr);
+        //strcpy(obj,"4F0000");
+        //printf("%s",obj);
         return;
     }
     else if((opvalue = read_optab(opcode))!=NULL){
         locctr+=3;
-        /*operval = read_symtab(operand);
-        if(!strcmp(operval,"")){
-        //handling forward reference
-            add_forward_list(operval);
-        }
-        else{*/
         
-       // strcat(obj,operval);
         
     }
     symval = read_symtab(label);
+    printf("xxx%s",symval);
     if(!strcmp(symval,"")){
         if(strcmp(label,"")){ 
             insert_symtab(label);
