@@ -6,6 +6,8 @@
 char pgmname[25]; 
 int err_flag=0;
 char objcode[7];
+char nonloc[100];
+int z=0;
 char *sub;
 char zero[2]="0";
 char opvalue[5];
@@ -18,6 +20,12 @@ char res[10];
 void create_symtab(){
     FILE *fileptr;
     fileptr = fopen("symtab.txt","w");
+    fputs("",fileptr);
+    fclose(fileptr);
+}
+void create_list(){
+    FILE *fileptr;
+    fileptr = fopen("forward_list.txt","w");
     fputs("",fileptr);
     fclose(fileptr);
 }
@@ -144,8 +152,8 @@ void add_forward_list(char operand[]){
     FILE *fileptr;
     fileptr = fopen("forward_list.txt","a");
     strcat(operand," ");
-    char loc[10];
-    sprintf(loc, "%d", locctr+1);
+    char* loc;
+    loc = decToHexa(locctr);
     strcat(operand,loc);
     strcat(operand,"\n");
     fputs(operand,fileptr);
@@ -156,8 +164,8 @@ void pass(char label[],char opcode[],char operand[]){
     char value[20];
     char* opvalue,*obj;
     char* symval,*operval;
+    obj = (char*)malloc(2);
     int i;
-    
     if(!strcmp(opcode,"START")){
         sscanf(operand,"%d",&i);
         locctr = i;
@@ -203,22 +211,41 @@ void pass(char label[],char opcode[],char operand[]){
     else if(!strcmp(opcode,"RSUB")){
         locctr+=3;
         printf("%d\n",locctr);
-        //strcpy(obj,"4F0000");
-        //printf("%s",obj);
+        strcpy(obj,"4F0000");
+        printf("%s",obj);
         return;
     }
     else if((opvalue = read_optab(opcode))!=NULL){
         locctr+=3;
-        
+        printf("%d\n",locctr);
         
     }
     symval = read_symtab(label);
-    printf("xxx%s",symval);
     if(!strcmp(symval,"")){
         if(strcmp(label,"")){ 
             insert_symtab(label);
         }
     }
+    if(strcmp(operand,"")){ 
+        operval = read_symtab(operand);
+        if(!strcmp(operval,"")){ 
+            int val;
+            val = 0;
+            sscanf(operand,"%d",&val);
+            if(val==0){
+                add_forward_list(operand);
+                
+            }  
+        }
+        else{
+            printf("%s\n",operval);
+        }     
+    
+    }
+    else{
+        printf("next operand\n");
+    }
+   
     
 }
 
@@ -229,6 +256,7 @@ int main(int argc, char* argv[]){
     FILE *fp;
     strcpy(pgmname,argv[1]);
     create_symtab();
+    create_list();
     fp = fopen(argv[1],"r");
     char line[255],label[20],opcode[20],operand[20];
     
