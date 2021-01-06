@@ -7,7 +7,7 @@ char pgmname[25];
 int err_flag=0;
 char objcode[7];
 char nonloc[100][4];
-char nonobj[100][3];
+char nonobj[100][5];
 int z=0;
 int valid = 0;
 char *sub ;
@@ -172,6 +172,7 @@ void pass(char label[],char opcode[],char operand[]){
     char* symval,*operval;
     obj = (char*)malloc(2);
     int i;
+    int x = 0;
     valid = 0;
     if(!strcmp(opcode,"START")){
         sscanf(operand,"%d",&i);
@@ -237,7 +238,7 @@ void pass(char label[],char opcode[],char operand[]){
     }
     else if((opvalue = read_optab(opcode))!=NULL){
         locctr+=3;
-        //printf("%d\n",locctr);
+        strcpy(obj,opvalue);
         valid = 1;
     }
     symval = read_symtab(label);
@@ -253,16 +254,25 @@ void pass(char label[],char opcode[],char operand[]){
             int val;
             val = 0;
             sscanf(operand,"%d",&val);
-            if(val==0 || valid == 1){
+            if(valid == 1){
+            if(val==0){
                 if(find(operand,",X")!=-1){
                     int len = strlen(operand);
                     operand = substr(operand,0,len-2); 
+                    x = 1;
                 }
                 add_forward_list(operand);
-                strcpy(nonloc[z],decToHexa(locctr));
-                strcpy(nonobj[z++],opcode);
+                
+               strcpy(nonobj[z],obj);       //here obj contains opvalue
+               strcpy(nonloc[z++],decToHexa(locctr));
+                //store the location with undefined operands
+                //and store corrsponding obj codes
+                //strcpy(obj,opvalue);
+                strcat(obj,"0000");
             }
+            
             printf("%s\n",obj);
+            }
         }
         else{
             printf("%s\n",obj);
@@ -300,6 +310,10 @@ int main(int argc, char* argv[]){
         }
         pass(label,opcode,operand);
         //printf("label:%s\n opcode:%s\n operand:%s\n",label,opcode,operand);
+    }
+    for(int i=0;i<z;i++){
+        printf("loc:%s\n",nonloc[i]);
+        printf("obj:%s\n",nonobj[i]);
     }
     fclose(fp);
     return 0;
