@@ -6,9 +6,11 @@
 char pgmname[25]; 
 int err_flag=0;
 char objcode[7];
-char nonloc[100];
+char nonloc[100][4];
+char nonobj[100][3];
 int z=0;
-char *sub;
+int valid = 0;
+char *sub ;
 char zero[2]="0";
 char opvalue[5];
 char symvalue[20];
@@ -65,7 +67,7 @@ char* decToHexa(int n) {
 void insert_symtab(char symbol[]){
     FILE *fileptr;
     fileptr = fopen("symtab.txt","a");
-    printf("%s",symbol);
+    //printf("%s",symbol);
     strcat(symbol," ");
     char* loc;
     loc = decToHexa(locctr);
@@ -118,14 +120,18 @@ char* read_optab(char search[]){
 
 char* substr(char* str,int beg,int end){
     int len = end - beg + 1;
+    char* temp;
+    temp = (char*)malloc(len);
     sub = (char*)malloc(len);
     int i = beg;
     int j=0;
-    while(beg < end){
-        sub[j++] = str[i++];
+    while(i < end){
+       temp[j++] = str[i++];
     }
-    sub[j]='\0';
+    temp[j]='\0';
+    strcpy(sub,temp);
     return sub;
+    
 }
 
 int find(char* str,char * substr){
@@ -151,12 +157,12 @@ int find(char* str,char * substr){
 void add_forward_list(char operand[]){
     FILE *fileptr;
     fileptr = fopen("forward_list.txt","a");
-    strcat(operand," ");
     char* loc;
     loc = decToHexa(locctr);
-    strcat(operand,loc);
-    strcat(operand,"\n");
-    fputs(operand,fileptr);
+    strcat(loc," ");
+    strcat(loc,operand);
+    strcat(loc,"\n");
+    fputs(loc,fileptr);
     fclose(fileptr);
 }
 
@@ -166,11 +172,12 @@ void pass(char label[],char opcode[],char operand[]){
     char* symval,*operval;
     obj = (char*)malloc(2);
     int i;
+    valid = 0;
     if(!strcmp(opcode,"START")){
         sscanf(operand,"%d",&i);
         locctr = i;
         start = i;
-        printf("%d\n",locctr);
+       // printf("%d\n",locctr);
     }
     else if(!strcmp(opcode,"END")){
         pgmlen = locctr + 3 - start;
@@ -179,13 +186,13 @@ void pass(char label[],char opcode[],char operand[]){
     else if(!strcmp(opcode,"RESW")){
         sscanf(operand,"%d",&i);
         locctr+=3*i;
-        printf("%d\n",locctr);
+       // printf("%d\n",locctr);
         
     }
     else if(!strcmp(opcode,"RESB")){
         sscanf(operand,"%d",&i);
         locctr+=i;
-        printf("%d\n",locctr);
+        //printf("%d\n",locctr);
         
     }
     else if(!strcmp(opcode,"BYTE")){
@@ -200,25 +207,38 @@ void pass(char label[],char opcode[],char operand[]){
             operand = substr(operand,2,len);
             locctr+= (len - 3);
         }
-        strcpy(obj,"");
-        printf("%d\n",locctr);
+        valid = 0;
+        strcpy(obj,operand);
+        while(strlen(obj)<6){
+            strcpy(zero,"0");
+            strcat(zero,obj);
+            strcpy(obj,zero);
+        }
+       printf("obj:%s\n",obj);
     }
     else if(!strcmp(opcode,"WORD")){
         locctr+=3;
-        printf("%d\n",locctr);
-        
+        //printf("%d\n",locctr);
+        strcpy(obj,operand);
+        while(strlen(obj)<6){
+            strcpy(zero,"0");
+            strcat(zero,obj);
+            strcpy(obj,zero);
+        }
+        //printf("obj:%s\n",obj);
+        valid = 0;
     }
     else if(!strcmp(opcode,"RSUB")){
         locctr+=3;
-        printf("%d\n",locctr);
+        //printf("%d\n",locctr);
         strcpy(obj,"4F0000");
-        printf("%s",obj);
+        //printf("%s",obj);
         return;
     }
     else if((opvalue = read_optab(opcode))!=NULL){
         locctr+=3;
-        printf("%d\n",locctr);
-        
+        //printf("%d\n",locctr);
+        valid = 1;
     }
     symval = read_symtab(label);
     if(!strcmp(symval,"")){
@@ -227,23 +247,31 @@ void pass(char label[],char opcode[],char operand[]){
         }
     }
     if(strcmp(operand,"")){ 
+        
         operval = read_symtab(operand);
         if(!strcmp(operval,"")){ 
             int val;
             val = 0;
             sscanf(operand,"%d",&val);
-            if(val==0){
+            if(val==0 || valid == 1){
+                if(find(operand,",X")!=-1){
+                    int len = strlen(operand);
+                    operand = substr(operand,0,len-2); 
+                }
                 add_forward_list(operand);
-                
-            }  
+                strcpy(nonloc[z],decToHexa(locctr));
+                strcpy(nonobj[z++],opcode);
+            }
+            printf("%s\n",obj);
         }
         else{
-            printf("%s\n",operval);
+            printf("%s\n",obj);
         }     
     
     }
     else{
-        printf("next operand\n");
+        
+        printf("%s\n",obj);
     }
    
     
