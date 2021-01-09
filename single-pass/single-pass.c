@@ -8,13 +8,16 @@ int err_flag=0;
 char objcode[7];
 char nonloc[100][4];
 char nonobj[100][5];
+char text[100][7];
+int nonx[100];
+char* TEXT;
 int z=0;
 int valid = 0;
 char *sub ;
 char zero[2]="0";
 char opvalue[5];
 char symvalue[20];
-char undef[20];
+char undef[20],lc[20];
 int locctr = 0,start = 0;
 int pgmlen=0;
 char res[10];
@@ -154,6 +157,27 @@ int find(char* str,char * substr){
     return -1;
 }
 
+char index_str(char c){
+    char hex[] = {'8','9','A','B','C','D','E','F'};
+    int d = c - '0';
+    return hex[d];
+}
+
+char* read_list(char loc[]){
+    FILE *fileptr;
+    char line[255],op[20],l[20];
+    fileptr = fopen("forward_list.txt","r");
+    while(fgets(line,255,fileptr)){
+        sscanf(line,"%s %s",op,lc);
+       // printf("%s ---- %s",op,loc);
+        if(!strcmp(op,loc)){
+            return lc;
+        }
+    }
+    fclose(fileptr);
+    return NULL;
+}
+
 void add_forward_list(char operand[]){
     FILE *fileptr;
     fileptr = fopen("forward_list.txt","a");
@@ -164,6 +188,59 @@ void add_forward_list(char operand[]){
     strcat(loc,"\n");
     fputs(loc,fileptr);
     fclose(fileptr);
+}
+
+
+
+void write_header(){
+    
+    char* HEADER,*pg,*res;
+    HEADER = (char*)malloc(16);
+    pg = (char*)malloc(4);
+    res = (char*)malloc(6);
+    strcpy(HEADER,"H^");
+    pg = substr(pgmname,0,6);
+    strcat(pg,"^");
+    strcat(HEADER,pg);
+    res = decToHexa(start);
+    while(strlen(res)<6){
+        strcpy(zero,"0");
+        strcat(zero,res);
+        strcpy(res,zero);
+    }
+    strcat(HEADER,res);
+    strcat(HEADER,"^");
+    res = decToHexa(pgmlen);
+    while(strlen(res)<6){
+        strcpy(zero,"0");
+        strcat(zero,res);
+        strcpy(res,zero);
+    }
+    strcat(HEADER,res);
+    printf("%s\n",HEADER);
+    
+}
+
+void init_text(){
+    
+    TEXT = (char*)malloc(61);
+    strcpy(TEXT,"T^");
+
+}
+
+void write_end(){
+    char* END,*res;
+    END = (char*)malloc(10);
+    res = (char*)malloc(7);
+    strcpy(END,"E^");
+    res = decToHexa(start);
+    while(strlen(res)<6){
+        strcpy(zero,"0");
+        strcat(zero,res);
+        strcpy(res,zero);
+    }
+    strcat(END,res);
+    printf("%s\n",END);
 }
 
 void pass(char label[],char opcode[],char operand[]){
@@ -215,7 +292,7 @@ void pass(char label[],char opcode[],char operand[]){
             strcat(zero,obj);
             strcpy(obj,zero);
         }
-       printf("obj:%s\n",obj);
+       printf("objcode:%s\n",obj);
     }
     else if(!strcmp(opcode,"WORD")){
         locctr+=3;
@@ -226,14 +303,14 @@ void pass(char label[],char opcode[],char operand[]){
             strcat(zero,obj);
             strcpy(obj,zero);
         }
-        //printf("obj:%s\n",obj);
+        printf("objcode:%s\n",obj);
         valid = 0;
     }
     else if(!strcmp(opcode,"RSUB")){
         locctr+=3;
         //printf("%d\n",locctr);
         strcpy(obj,"4F0000");
-        //printf("%s",obj);
+        printf("objcode:%s\n",obj);
         return;
     }
     else if((opvalue = read_optab(opcode))!=NULL){
@@ -252,10 +329,10 @@ void pass(char label[],char opcode[],char operand[]){
         operval = read_symtab(operand);
         if(!strcmp(operval,"")){ 
             int val;
-            val = 0;
+            val = -1;
             sscanf(operand,"%d",&val);
             if(valid == 1){
-            if(val==0){
+            if(val==-1){
                 if(find(operand,",X")!=-1){
                     int len = strlen(operand);
                     operand = substr(operand,0,len-2); 
@@ -264,24 +341,46 @@ void pass(char label[],char opcode[],char operand[]){
                 add_forward_list(operand);
                 
                strcpy(nonobj[z],obj);       //here obj contains opvalue
-               strcpy(nonloc[z++],decToHexa(locctr));
+               strcpy(nonloc[z],decToHexa(locctr));
+               nonx[z++] = x;
                 //store the location with undefined operands
                 //and store corrsponding obj codes
-                //strcpy(obj,opvalue);
                 strcat(obj,"0000");
+
             }
             
-            printf("%s\n",obj);
+            
             }
         }
         else{
-            printf("%s\n",obj);
+            char opcode[10];
+            int val = -1;
+            sscanf(operand,"%d",&val);
+            if(val==-1){
+             if(find(operand,",X")!=-1){
+                    int len = strlen(operand);
+                    operand = substr(operand,0,len-2); 
+                    x = 1;
+                }
+            strcpy(opcode,obj);
+            while(strlen(operval)<4){
+                strcpy(zero,"0");
+                strcat(zero,operval);
+                strcpy(operval,zero);
+            }
+            if(x==1){
+                char ch = index_str(operval[0]);
+                operval[0] = ch;
+            }
+            strcat(opcode,operval);
+            }
+            printf("opcode:%s\n",opcode);
         }     
     
     }
     else{
         
-        printf("%s\n",obj);
+        printf("yyyyyyyyyyy%s\n",obj);
     }
    
     
@@ -312,9 +411,25 @@ int main(int argc, char* argv[]){
         //printf("label:%s\n opcode:%s\n operand:%s\n",label,opcode,operand);
     }
     for(int i=0;i<z;i++){
-        printf("loc:%s\n",nonloc[i]);
-        printf("obj:%s\n",nonobj[i]);
+        char* symbol = read_symtab(read_list(nonloc[i]));
+        char opcode[10];
+        strcpy(opcode,nonobj[i]);
+       // printf("loc:%s\n",symbol);
+       // printf("obj:%s\n",nonobj[i]);
+        while(strlen(symbol)<4){
+                strcpy(zero,"0");
+                strcat(zero,symbol);
+                strcpy(symbol,zero);
+            }
+        if(nonx[i]==1){
+            char ch = index_str(symbol[0]);
+            symbol[0] = ch;
+        }
+        strcat(opcode,symbol);
+        printf("objcode:%s\n",opcode);
     }
+    write_header();
+    write_end();
     fclose(fp);
     return 0;
 
