@@ -360,7 +360,7 @@ void pass(char label[],char opcode[],char operand[]){
     else if(!strcmp(opcode,"RSUB")){
         locctr+=3;
         //printf("%d\n",locctr);
-        strcpy(obj,"4F0000");
+        strcpy(obj,"4C0000");
         strcpy(text[pos],obj);
         lab[pos++]=1;
         //printf("objcode:%s\n",obj);
