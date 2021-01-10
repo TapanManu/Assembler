@@ -64,6 +64,9 @@ char* substring(char str[],int beg,int end){
     int len = end-beg+1;
     char temp[len];
     int j=0;
+    if(beg>=strlen(str)){
+        return "xx";      //avoid null
+    }
     for(int i=beg;i<end;i++){
         temp[j++] = str[i];
     }
@@ -89,6 +92,8 @@ void write_loader(int loc,char obj[]){
 }
 
 int find(char str[],int pos,char search){
+    if(pos>=strlen(str))
+        return -1;
     for(int i=pos;i<strlen(str);i++){
         if(str[i]==search){
             return i;
@@ -124,9 +129,18 @@ void scan_header(char head[]){
 
 void scan_text(char line[]){
     int start=12;       //first objcode position
-    for(int i=start;i<strlen(line);i+=7){
-        write_loader(startaddr,substring(line,i,i+7));
+    for(int i=start;i<strlen(line);){
+        int next = find(line,i,'^');
+        printf("xx%d",next);
+        if(next==-1){
+            write_loader(startaddr,substring(line,i,strlen(line)));
+            startaddr = startaddr+3;
+            break;
+        }
+        write_loader(startaddr,substring(line,i,next));
         startaddr = startaddr+3;
+        i = next+1;
+
     }
 }
 
