@@ -309,13 +309,15 @@ void pass(char label[],char opcode[],char operand[]){
     else if(!strcmp(opcode,"RESW")){
         sscanf(operand,"%d",&i);
         locctr+=3*i;
-        
+        strcpy(text[pos],"");
+        lab[pos++]=-1;
         
     }
     else if(!strcmp(opcode,"RESB")){
         sscanf(operand,"%d",&i);
         locctr+=i;
-        //printf("%d\n",locctr);
+        strcpy(text[pos],"");
+        lab[pos++]=-1;
         
     }
     else if(!strcmp(opcode,"BYTE")){
@@ -467,6 +469,7 @@ int main(int argc, char* argv[]){
     write_header();
     init_text();
     for(int i=0;i<pos;i++){
+        
         if(lab[i]==0){
             char* symbol = read_symtab(read_list(nonloc[i]));
             char opcode[10];
