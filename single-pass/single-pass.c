@@ -241,7 +241,26 @@ void init_text(){
     text_len = 0;
 }
 
+void write_text(){
+    char *tl ;
+    tl = (char*)malloc(3);
+    tl = decToHexa(text_len);
+    while(strlen(tl)<2){
+            strcpy(zero,"0");
+            strcat(zero,tl);
+            strcpy(tl,zero);
+         }
+    TEXT[9]=tl[0];              //updating text length
+    TEXT[10]=tl[1];
+    printf("%s\n",TEXT);
+}
+
 int app_text(char objcode[]){
+    if(!strcmp(objcode,"")){
+        text_start = text_len + text_start;
+        write_text();
+        init_text();
+    }
     if((text_len + strlen(objcode) <= 30)){
         strcat(TEXT,objcode);
         strcat(TEXT,"^");
@@ -251,6 +270,11 @@ int app_text(char objcode[]){
         char *tl ;
         tl = (char*)malloc(3);
         tl = decToHexa(text_len);
+        while(strlen(tl)<2){
+            strcpy(zero,"0");
+            strcat(zero,tl);
+            strcpy(tl,zero);
+         }
         TEXT[9]=tl[0];              //updating text length
         TEXT[10]=tl[1];
         printf("%s\n",TEXT);
@@ -259,14 +283,7 @@ int app_text(char objcode[]){
     return 1;       //continue 
 }
 
-void write_text(){
-    char *tl ;
-    tl = (char*)malloc(3);
-    tl = decToHexa(text_len);
-    TEXT[9]=tl[0];              //updating text length
-    TEXT[10]=tl[1];
-    printf("%s\n",TEXT);
-}
+
 
 
 
@@ -466,14 +483,29 @@ int main(int argc, char* argv[]){
         pass(label,opcode,operand);
         //printf("label:%s\n opcode:%s\n operand:%s\n",label,opcode,operand);
     }
+    int br=0;
     write_header();
     init_text();
     for(int i=0;i<pos;i++){
+        if(br==1){
+            if(lab[i]==-1){
+                continue;
+            }
+            else{
+                
+                write_text();
+                text_start = text_start + text_len;
+                init_text();
+                br = 0;
+            }
+        }
         
         if(lab[i]==0){
+            
             char* symbol = read_symtab(read_list(nonloc[i]));
             char opcode[10];
             strcpy(opcode,nonobj[i]);
+            
         // printf("loc:%s\n",symbol);
         // printf("obj:%s\n",nonobj[i]);
             while(strlen(symbol)<4){
@@ -489,6 +521,14 @@ int main(int argc, char* argv[]){
             strcpy(text[i],opcode);
             
         }
+        else if(lab[i]==-1){
+            if(!strcmp(text[i],"")){
+                br = 1;
+                
+                continue;
+            }
+            
+        }
         if(app_text(text[i])==1){
                 continue;
             }
@@ -496,7 +536,9 @@ int main(int argc, char* argv[]){
             text_start = text_start + text_len;
             init_text();
             app_text(text[i]);
+        
         }
+        
         //printf("objcode:%s\n",text[i]);
     }
     
