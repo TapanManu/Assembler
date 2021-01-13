@@ -96,10 +96,10 @@ void get_line(char label[],char opcode[],char operand[]){
 
 void processline(FILE* fp,char label[],char opcode[],char operand[]){
     found = 0;
-    read_namtab(opcode);        //  search for macro name
+    int macronum = read_namtab(opcode);        //  search for macro name
     if(found==1){
        // printf("\tMACRO\n");
-        expand();
+        expand(macronum,operand);
     }
     else if(!strcmp(opcode,"MACRO")){
         char* deflin;
@@ -121,7 +121,7 @@ void processline(FILE* fp,char label[],char opcode[],char operand[]){
 void insert_deftab(char defline[]){
     FILE *f;
     f = fopen("deftab.txt","a");
-    strcat(defline,"\n");
+    //strcat(defline,"\n");
     fputs(defline,f);
     fclose(f);
 }
@@ -162,7 +162,9 @@ void create_argtab(char args[]){
             continue;
         }
         else if(i==(strlen(args)-1) || args[i]=='\0'){
-            ARGTAB[argcount][k] = '\0';
+            ARGTAB[argcount][k++] = args[i];
+            //ARGTAB[argcount][k] = '\0';
+            printf("ARGS:%s",ARGTAB[argcount]);
         }
         else{
             ARGTAB[argcount][k++] = args[i];
@@ -192,7 +194,8 @@ void sub_argtab(char args[]){
 }
 
 int search_argtab(char arg[]){
-    for(int i=0;i<arglen;i++){
+    for(int i=0;i<=arglen;i++){
+        printf("arg1:%s arg2:%s\n",ARGTAB[i],arg);
         if(!strcmp(ARGTAB[i],arg)){
             return i+1;
         }
@@ -210,7 +213,7 @@ void insert_namtab(char name[]){
     fclose(fp);
 }
 
-void expand(){
+void expand(int mac_indx,char args[]){
     expanding = 1;
     int br=0; 
     int length = 0;
@@ -219,19 +222,28 @@ void expand(){
     fp = fopen("deftab.txt","r");       //read deftab
     char lab[10],opc[10],oper[30];
     defline = (char*)malloc(255);
-    fgets(defline,255,fp);
-    lab[0]=0; opc[0]=0; oper[0]=0;
-    //  printf("%d",strlen(defline));
-    sscanf(defline,"%s %s %s",lab,opc,oper);
 
-    //get the macroname  
+     //get the macroname  
     //get macro index
     //using that, insert into namtab, get startloc and endloc
     //which macro is expanding ==> info in lab
 
+
+    int startloc = NAMTAB[mac_indx][0];
+    printf("startloc:%d\n",startloc); 
+    int i=0;
+    while(i <= startloc){
+        fgets(defline,255,fp);
+        i++;
+    }
+    lab[0]=0; opc[0]=0; oper[0]=0;
+    printf("defline:%s\n",defline);
+    sscanf(defline,"%s %s %s",lab,opc,oper);
+
+   
     //set up argtab , map posiitonal index
 
-    sub_argtab(oper);
+    sub_argtab(args);
 
     //macro invocation to expanded file as comment
     char dot[]=".\t";
@@ -298,15 +310,18 @@ void define(FILE *fp,char label[],char oper[]){
                     }
                     j++;
                 }
-                else if(i == strlen(defline)-1){
+                else if(i==strlen(defline)-1){
                     j = 0;
                     cnt = 0;
                     //compare it with argtab
+                    printf("xyzwxx:%s\n",arg);
                     int s = search_argtab(arg);
+                    printf("tttttt:%d\n",s);
                     if(s==-1){
                         err_flag = 2;   //argument not found
                     }
                      //replace the position value
+                     
                     defline[replacepos] = s + '0';
                 }
                 else{
@@ -318,13 +333,14 @@ void define(FILE *fp,char label[],char oper[]){
                         err_flag = 2;   //argument not found
                     }
                      //replace the position value
+                     printf("ssssss:%d\n",s);
                     defline[replacepos] = s + '0';
                 }
             }
             if(defline[i]=='&'){
                 //search for positional param
                 //locate param by begining with &
-                cnt = 0;
+                cnt = 1;
                 defline[i]='?';
             }
         }

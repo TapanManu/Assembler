@@ -7,99 +7,44 @@ COPY	START	0
 .	MAIN
 .
 FIRST	STL	RETADR
-.	RDBUFF MACRO &INDEV,&BUFADR,&RECLTH
-.
-		
+.	RDBUFF MACRO &INDEV,&BUFADR,&RECLTH.
 	CLEAR	X
-		
 	CLEAR	A
-		
 	CLEAR	S
-		
 	+LDT	#4096
-		
-	TD	=X'?INDEV'
-		
+TD	=X'?1	'
 	JEQ	*-3
-		
-	RD	=X'?INDEV'
-		
+RD	=X'?1	'
 	COMPR	A,S
-		
 	JEQ	*+11
-		
-	STCH	?BUFADR,X
-		
+STCH	?2	,X
 	TIXR	T
-		
 	JLT	*-19
-		
-	STX	?RECLTH
-		
+	STX	?3
 	MEND	
 	LDA	LENGTH
 	COMP	#0
 	JEQ	ENDFIL
-.	RDBUFF MACRO &INDEV,&BUFADR,&RECLTH
-.
-		
+.	WRBUFF MACRO &OUTDEV,&BUFADR,&RECLTH.
 	CLEAR	X
-		
-	CLEAR	A
-		
-	CLEAR	S
-		
-	+LDT	#4096
-		
-	TD	=X'?INDEV'
-		
+	LDT	?3
+LDCH	?2	,X
+TD	=X'?1	'
 	JEQ	*-3
-		
-	RD	=X'?INDEV'
-		
-	COMPR	A,S
-		
-	JEQ	*+11
-		
-	STCH	?BUFADR,X
-		
+WD	=X'?1	'
 	TIXR	T
-		
-	JLT	*-19
-		
-	STX	?RECLTH
-		
+	JLT	*-14
 	MEND	
 	J	CLOOP
-.	RDBUFF MACRO &INDEV,&BUFADR,&RECLTH
-.
-		
+.	WRBUFF MACRO &OUTDEV,&BUFADR,&RECLTH.
 	CLEAR	X
-		
-	CLEAR	A
-		
-	CLEAR	S
-		
-	+LDT	#4096
-		
-	TD	=X'?INDEV'
-		
+	LDT	?3
+LDCH	?2	,X
+TD	=X'?1	'
 	JEQ	*-3
-		
-	RD	=X'?INDEV'
-		
-	COMPR	A,S
-		
-	JEQ	*+11
-		
-	STCH	?BUFADR,X
-		
+WD	=X'?1	'
 	TIXR	T
-		
-	JLT	*-19
-		
-	STX	?RECLTH
-		
+	JLT	*-14
 	MEND	
 	J	@RETADR
 EOF	BYTE	C'EOF'
