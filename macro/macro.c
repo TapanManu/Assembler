@@ -17,7 +17,7 @@ char* pgmname, *sub;
 char label[10],opcode[10],operand[30];
 int found = 0;
 int err_flag;
-char* defline;
+char *defline=NULL;
 
 char* substr(char* str,int beg,int end){
     int len = end - beg + 1;
@@ -201,10 +201,11 @@ void expand(){
     char arg[15];     
     FILE *fp;
     fp = fopen("deftab.txt","r");       //read deftab
-    char lab[10],opc[10],oper[10];
+    char lab[10],opc[10],oper[30];
     defline = (char*)malloc(255);
     fgets(defline,255,fp);
     lab[0]=0; opc[0]=0; oper[0]=0;
+    //  printf("%d",strlen(defline));
     sscanf(defline,"%s %s %s",lab,opc,oper);
 
     //get the macroname  
