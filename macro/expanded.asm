@@ -1,44 +1,103 @@
 COPY	START	0
-.
 .	MACRO TO READ INPUT
 .	
-	CLEAR	X
-	CLEAR	A
-	CLEAR	S
-	+LDT	#4096
-	TD	=X'&INDEV'
-	JEQ	*-3
-	RD	=X'&INDEV'
-	COMPR	A,S
-	JEQ	*+11
-	STCH	&BUFADR,X
-	TIXR	T
-	JLT	*-19
-	STX	&RECLTH
-	MEND	
-.
 .	MACRO TO WRITE OUTPUT
 .
-	CLEAR	X
-	LDT	&RECLTH
-	LDCH	&BUFADR,X
-	TD	=X'&OUTDEV'
-	JEQ	*-3
-	WD	=X'&OUTDEV'
-	TIXR	T
-	JLT	*-14
-	MEND	
 .
 .	MAIN
 .
 FIRST	STL	RETADR
-CLOOP	RDBUFF	F1,BUFFER,LENGTH
+.	.
+		
+	CLEAR	X
+		
+	CLEAR	A
+		
+	CLEAR	S
+		
+	+LDT	#4096
+		
+	TD	=X'?INDEV'
+		
+	JEQ	*-3
+		
+	RD	=X'?INDEV'
+		
+	COMPR	A,S
+		
+	JEQ	*+11
+		
+	STCH	?BUFADR,X
+		
+	TIXR	T
+		
+	JLT	*-19
+		
+	STX	?RECLTH
+		
+	MEND	
 	LDA	LENGTH
 	COMP	#0
 	JEQ	ENDFIL
-	WRBUFF	05,BUFFER,LENGTH
+.	.
+		
+	CLEAR	X
+		
+	CLEAR	A
+		
+	CLEAR	S
+		
+	+LDT	#4096
+		
+	TD	=X'?INDEV'
+		
+	JEQ	*-3
+		
+	RD	=X'?INDEV'
+		
+	COMPR	A,S
+		
+	JEQ	*+11
+		
+	STCH	?BUFADR,X
+		
+	TIXR	T
+		
+	JLT	*-19
+		
+	STX	?RECLTH
+		
+	MEND	
 	J	CLOOP
-ENDFIL	WRBUFF	05,EOF,THREE
+.	.
+		
+	CLEAR	X
+		
+	CLEAR	A
+		
+	CLEAR	S
+		
+	+LDT	#4096
+		
+	TD	=X'?INDEV'
+		
+	JEQ	*-3
+		
+	RD	=X'?INDEV'
+		
+	COMPR	A,S
+		
+	JEQ	*+11
+		
+	STCH	?BUFADR,X
+		
+	TIXR	T
+		
+	JLT	*-19
+		
+	STX	?RECLTH
+		
+	MEND	
 	J	@RETADR
 EOF	BYTE	C'EOF'
 THREE	WORD	3

@@ -14,7 +14,7 @@ int exploc=0;         //location ponter in deftab
 int NAMTAB[10][2];
 char ARGTAB[10][15];    //max no of args allowed in macro = 10
 char* pgmname, *sub;
-char label[10],opcode[10],operand[10];
+char label[10],opcode[10],operand[30];
 int found = 0;
 int err_flag;
 char* defline;
@@ -63,11 +63,25 @@ void write_source(char label[],char opcode[],char operand[]){
     fclose(fp);
 }
 
-void get_line(){
+void get_line(char label[],char opcode[],char operand[]){
+    int j=-1;
+    int k=0,l=0;
+    int len = -1;
+    char *temp;
+    temp = (char*)malloc(50);
+    char args[10][20];
     if(expanding == 1){
-        //read deftab
-        
-        //substitute argtab for positional notation
+        for(int i=0;i<strlen(operand);i++){
+            if(operand[i]=='?'){
+                j = i+1;
+                strcpy(args[k++],ARGTAB[operand[j]]);
+                len = i;
+                strcpy(temp,substr(operand,l,len));
+                strcat(temp,args[k-1]);
+                l+=(i+strlen(args[k]));
+                //substituting args in argtab into positions
+            }
+        }
     }
     return;
 }
@@ -76,7 +90,7 @@ void processline(FILE* fp,char label[],char opcode[],char operand[]){
     found = 0;
     read_namtab(opcode);        //  search for macro name
     if(found==1){
-        //printf("\tMACRO\n");
+        printf("\tMACRO\n");
         expand();
     }
     else if(!strcmp(opcode,"MACRO")){
@@ -96,9 +110,6 @@ void insert_deftab(char defline[]){
     fclose(f);
 }
 
-void read_deftab(){
-    
-}
 
 
 int read_namtab(char opcode[]){
@@ -196,15 +207,22 @@ void expand(){
     lab[0]=0; opc[0]=0; oper[0]=0;
     sscanf(defline,"%s %s %s",lab,opc,oper);
 
+    //get the macroname  
+    //get macro index
+    //using that, insert into namtab, get startloc and endloc
+    //which macro is expanding ==> info in lab
+
     //set up argtab , map posiitonal index
 
     sub_argtab(oper);
+
+    //macro invocation to expanded file as comment
     char dot[]=".\t";
     strcat(dot,defline);
     strcpy(defline,dot);
     write_src(defline);
     
-    //macro invocation to expanded file as comment
+    
     while(strcmp(opc,"MEND")){
         lab[0]=0; opc[0]=0; oper[0]=0;
         fgets(defline,255,fp);
@@ -218,7 +236,7 @@ void expand(){
             strcpy(opc,lab);
             strcpy(lab,"");
         }
-        get_line();
+        get_line(lab,opc,oper);
         processline(fp,lab,opc,oper);
     }
     expanding = 0;
@@ -230,7 +248,7 @@ void define(FILE *fp,char label[],char oper[]){
     char* mtab;
     mtab = (char*)malloc(20);
    
-    char defline[255],lab[20],opc[20],oper[20];
+    char defline[255],lab[20],opc[20],opr[20];
     fgets(defline,255,fp);
     insert_deftab(defline);
     create_argtab(oper);        //creating variable argument list
@@ -246,8 +264,8 @@ void define(FILE *fp,char label[],char oper[]){
             write_src(defline);     //comments
             continue;
         }
-        lab[0]=0; opc[0]=0; oper[0]=0;
-        sscanf(defline,"%s %s %s",lab,opc,oper);
+        lab[0]=0; opc[0]=0; opr[0]=0;
+        sscanf(defline,"%s %s %s",lab,opc,opr);
         char arg[15];
         int j=0,cnt=0;
         int replacepos=-1;
@@ -293,10 +311,10 @@ void define(FILE *fp,char label[],char oper[]){
                 defline[i]='?';
             }
         }
-        insert_deftab(define);      //insert into definition table
+        insert_deftab(defline);      //insert into definition table
         defloc++;
-        if(oper[0]==0){
-            strcpy(oper,opc);
+        if(opr[0]==0){
+            strcpy(opr,opc);
             strcpy(opc,lab);
             strcpy(lab,"");
         }
@@ -347,7 +365,7 @@ int main(int argc,char* argv[]){
             strcpy(label,"");
         }
         
-        get_line();
+        get_line(label,opcode,operand);
         processline(input,label,opcode,operand);
     }
 
