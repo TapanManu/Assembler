@@ -86,8 +86,10 @@ void get_line(char label[],char opcode[],char operand[]){
                 len = i;
                 strcpy(temp,substr(operand,l,len));
                 strcat(temp,args[k-1]);
+                printf("temp:%s",operand);
                 l+=(i+strlen(args[k]));
                 //substituting args in argtab into positions
+                //TODO
             }
         }
     }
@@ -195,7 +197,7 @@ void sub_argtab(char args[]){
 
 int search_argtab(char arg[]){
     for(int i=0;i<=arglen;i++){
-        printf("arg1:%s arg2:%s\n",ARGTAB[i],arg);
+        //printf("arg1:%s arg2:%s\n",ARGTAB[i],arg);
         if(!strcmp(ARGTAB[i],arg)){
             return i+1;
         }
@@ -256,6 +258,7 @@ void expand(int mac_indx,char args[]){
         lab[0]=0; opc[0]=0; oper[0]=0;
         fgets(defline,255,fp);
         sscanf(defline,"%s %s %s",lab,opc,oper);
+        
         if(lab[0]=='.'){
             write_src(defline);
             continue;
@@ -264,6 +267,9 @@ void expand(int mac_indx,char args[]){
             strcpy(oper,opc);
             strcpy(opc,lab);
             strcpy(lab,"");
+        }
+        if(!strcmp(opc,"MEND")){
+            break;
         }
         get_line(lab,opc,oper);
         processline(fp,lab,opc,oper);
