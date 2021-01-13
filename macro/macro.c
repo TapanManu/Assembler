@@ -5,6 +5,7 @@
 void expand();
 void define(FILE*,char[],char[]);
 int read_namtab(char[]);
+void insert_deftab(char*);
 
 int expanding = 0;
 int arglen=0;               //argtab length
@@ -44,6 +45,13 @@ void clear_src(){
 void clear_name(){
     FILE *fp;
     fp = fopen("namtab.txt","w");
+    fputs("",fp);
+    fclose(fp);
+}
+
+void clear_def(){
+    FILE *fp;
+    fp = fopen("deftab.txt","w");
     fputs("",fp);
     fclose(fp);
 }
@@ -90,10 +98,18 @@ void processline(FILE* fp,char label[],char opcode[],char operand[]){
     found = 0;
     read_namtab(opcode);        //  search for macro name
     if(found==1){
-        printf("\tMACRO\n");
+       // printf("\tMACRO\n");
         expand();
     }
     else if(!strcmp(opcode,"MACRO")){
+        char* deflin;
+        deflin = (char*)malloc(255);
+        strcpy(deflin,label);
+        strcat(deflin," ");
+        strcat(deflin,opcode);
+        strcat(deflin," ");
+        strcat(deflin,operand);
+        insert_deftab(deflin);
         define(fp,label,operand);
     }
     else{
@@ -120,11 +136,11 @@ int read_namtab(char opcode[]){
     macro_name = (char*)malloc(15);         //max macro name size == 15
 
     while(fgets(lin,255,fp)){
-        sscanf(lin,"%d %s",&macro_index,macro_name);
+        sscanf(lin,"%d %s",&macro_indx,macro_name);
        // printf("%s",macro_name);        
         if(!strcmp(opcode,macro_name)){
             found = 1;
-            return macro_index;
+            return macro_indx;
         }
 
     }
@@ -348,6 +364,7 @@ int main(int argc,char* argv[]){
 
     clear_name();
     clear_src();
+    clear_def();
     
     input = fopen(argv[1],"r");
 
