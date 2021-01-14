@@ -278,13 +278,13 @@ int handle_expression(string operand){
             return x;
         }
         st.pop();
-        cout<<"xyz"<<x<<"|"<<y;
+        //cout<<"xyz"<<x<<"|"<<y;
         y = y - x;
         //st.pop();
         st.push(y);
         count--;
     }
-    return st.top();
+    return -1;
 }
 
 void write_intermediate(string line){
@@ -340,6 +340,10 @@ void first_pass(string label,string opcode,string operand){
         }
         return;
     }
+    else if(!strcmp(opc,"LTORG")){
+        //literal pool
+        return;
+    }
     if(!strcmp(opc,"END")){
         return;
     }
@@ -379,9 +383,13 @@ int main(int argc,char* argv[]){
     source.open(argv[1],ios::in);
     
     if(source.is_open()){
+        
         while(getline(source,line)){
             lineno++;
             stringstream s(line);
+            if(line.compare("\0")==0){
+                break;
+            }
             if(line.at(0)=='.'){
                 continue;
             }
@@ -394,17 +402,19 @@ int main(int argc,char* argv[]){
                 stringstream ss(line);
                 opcode="";operand="";
                 ss>>opcode>>operand;
-                label="";
-                
+                label=""; 
             }
+            
             cout<<"label:"<<label<<"opcode:"<<opcode<<"operand:"<<operand<<endl;
-                
+            
             first_pass(label,opcode,operand);
             if(label.compare("")==0){
                 label = "***";
             }
             write_intermediate(label+" "+opcode+" "+operand);
+            
         }
+        
     }
     else{
         cout<<"unable to open source file";

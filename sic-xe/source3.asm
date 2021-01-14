@@ -48,7 +48,7 @@ WLOOP	TD	=X'05'
 	JLT	WLOOP
 	RSUB
 	LTORG
-*	=C'EOF'
-*	=X'05'
+.*	=C'EOF'
+.*	=X'05'
 	END	FIRST
 
