@@ -75,23 +75,46 @@ void get_line(char label[],char opcode[],char operand[]){
     int j=-1;
     int k=0,l=0;
     int len = -1;
+    int x = 0;
     char *temp;
+    char *oprnew;
     temp = (char*)malloc(50);
+    oprnew = (char*)malloc(50);
     char args[10][20];
     if(expanding == 1){
+        printf("operand:%s\n",operand);
         for(int i=0;i<strlen(operand);i++){
             if(operand[i]=='?'){
                 j = i+1;
+                l = j;
+                int posarg;
                 strcpy(args[k++],ARGTAB[operand[j]]);
-                len = i;
+                len = j+1;
                 strcpy(temp,substr(operand,l,len));
                 strcat(temp,args[k-1]);
-                printf("temp:%s",operand);
+                sscanf(temp,"%d",&posarg);
+                printf("ARGUMENT:%s\n",ARGTAB[posarg-1]);
                 l+=(i+strlen(args[k]));
+                
+                for(int y=0;y<strlen(ARGTAB[posarg-1]);y++){
+                    oprnew[x++] = ARGTAB[posarg-1][y];
+                }
+                i+=strlen(ARGTAB[posarg-1]);
+                
+                //i+=strlen(ARGTAB[posarg-1]);
                 //substituting args in argtab into positions
                 //TODO
             }
+            else if(operand[i]=='#'){
+                continue;
+            }
+            else{
+                oprnew[x++] = operand[i];
+            }
         }
+        oprnew[x]='\0';
+        //printf("new operand:%s\n",oprnew);
+        strcpy(operand,oprnew);
     }
     return;
 }
@@ -186,6 +209,7 @@ void sub_argtab(char args[]){
             k=0;
         }
         else if(i==(strlen(args)-1) || args[i]=='\0'){
+            ARGTAB[argcount][k++] = args[i];
             ARGTAB[argcount][k] = '\0';
         }
         else{
@@ -239,7 +263,7 @@ void expand(int mac_indx,char args[]){
         i++;
     }
     lab[0]=0; opc[0]=0; oper[0]=0;
-    printf("defline:%s\n",defline);
+    //printf("defline:%s\n",defline);
     sscanf(defline,"%s %s %s",lab,opc,oper);
 
    
@@ -312,7 +336,7 @@ void define(FILE *fp,char label[],char oper[]){
                         replacepos = i;
                     }
                     else{
-                        defline[i]=' ';
+                        defline[i]='#';
                     }
                     j++;
                 }
@@ -320,9 +344,9 @@ void define(FILE *fp,char label[],char oper[]){
                     j = 0;
                     cnt = 0;
                     //compare it with argtab
-                    printf("xyzwxx:%s\n",arg);
+                    //printf("xyzwxx:%s\n",arg);
                     int s = search_argtab(arg);
-                    printf("tttttt:%d\n",s);
+                    //printf("tttttt:%d\n",s);
                     if(s==-1){
                         err_flag = 2;   //argument not found
                     }
