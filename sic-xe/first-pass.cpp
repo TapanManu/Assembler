@@ -12,6 +12,47 @@ int prevctr=0;
 int locctr=0;
 int err_flag=0;
 int lineno=0;
+
+int hexToDec(string hexVal) 
+{    
+    int len = hexVal.length(); 
+    int base = 1; 
+      
+    int dec_val = 0; 
+    
+    for (int i=len-1; i>=0; i--) 
+    {    
+        if (hexVal[i]>='0' && hexVal[i]<='9') 
+        { 
+            dec_val += (hexVal[i] - 48)*base; 
+            base = base * 16; 
+        } 
+           
+        else if (hexVal[i]>='A' && hexVal[i]<='F') 
+        { 
+            dec_val += (hexVal[i] - 55)*base; 
+            base = base*16; 
+        } 
+    } 
+      
+    return dec_val; 
+} 
+
+int read_symtab(string operand){
+    fstream symstream;
+    string line,comp;
+    symstream.open(pgmname+"_symtab.txt",ios::in);
+    while(getline(symstream,line)){
+        stringstream syms(line);
+        syms >> comp;
+        if(!strcmp(comp.c_str(),operand.c_str())){
+            syms >> comp; //hex address is obtained
+            return hexToDec(comp);
+        }
+    }
+    return -1;       //if not present
+}
+
 int search_symtab(string label)
 {
     fstream symstream;
@@ -167,6 +208,12 @@ void update_locctr(string opcode,string operand){
             locctr+=value;
         else err_flag=3;
     }
+    else if(!strcmp(opcode.c_str(),"EQU")){
+        stringstream cc(operand);
+        int value=0;
+        if(cc >> value)
+            locctr+=value;
+    }
     else{
         err_flag=1;
     }
@@ -179,18 +226,65 @@ void clear_file(string filename){
     symtab.close();
 }
 
-void insert_symtab(string label){
+void insert_symtab(string label,int abs=0,string op=" "){
     fstream symtab;
+    char field = 'R';
     symtab.open(pgmname+"_symtab.txt",ios::app);
     decToHex(locctr);
+    
+    if(abs==1){
+        field = 'A';
+        strcpy(val,op.c_str());
+    }
     
     while(strlen(val)<=3){
         strcpy(zero,"0");
         strcat(zero,val);
         strcpy(val,zero);
     }
-    symtab<<label<<" "<<val<<"\n";
+    
+    symtab<<label<<" "<<val<<" "<<field<<"\n";
     symtab.close();
+}
+stack<int> st;
+int handle_expression(string operand){
+    cout<<"EXPRESSION HANDLING BEGINS\n";
+    int prev = 0;
+    int loc = 0;
+    int count=0;
+    st.push(-1);        //bottom marker
+    while((loc = operand.find('-'))!=string::npos){
+       //cout<<"xxoperand:"<<operand<<"\n";
+       // cout<<"prev:"<<prev<<" loc:"<<loc<<"\n";
+        string op = operand.substr(0,loc);
+       // cout<<"op"<<op<<"\n";
+        st.push(read_symtab(op));
+        if(st.top()==-1)
+            break;
+        cout<<"loc:"<<loc<<" "<< st.top()<<"\n";
+        count+=1;
+        prev = loc+1;
+        operand = operand.substr(prev,operand.length()+1);    
+    }
+    st.push(read_symtab(operand));
+    cout<<"xx"<<st.top()<<"\n";
+    count+=1;
+    cout<<"EXPRESSION HANDLING ENDS\n";
+    while(count>=0){
+        int x = st.top();
+        st.pop();
+        int y = st.top();
+        if(y==-1){
+            return x;
+        }
+        st.pop();
+        cout<<"xyz"<<x<<"|"<<y;
+        y = y - x;
+        //st.pop();
+        st.push(y);
+        count--;
+    }
+    return st.top();
 }
 
 void write_intermediate(string line){
@@ -220,6 +314,30 @@ void first_pass(string label,string opcode,string operand){
         clear_file(pgmname+"_intermediate.txt"); 
     }
     else if(!strcmp(opc,"BASE")){
+        return;
+    }
+    else if(!strcmp(opc,"USE")){
+        return;
+    }
+    else if(!strcmp(opc,"EQU")){
+        if(operand.compare("*")==0){
+            decToHex(locctr);
+            insert_symtab(label,1,val);
+        }
+        else{
+            int v;
+            if(operand.find('+')!=string::npos || operand.find('-')!=string::npos){
+                //handle expressions
+                v = handle_expression(operand);
+                cout<<v;
+            }
+            else{
+                v = read_symtab(operand);
+            }
+             decToHex(v);
+             insert_symtab(label,1,val);
+            //insert_symtab(label,1,operand);
+        }
         return;
     }
     if(!strcmp(opc,"END")){
