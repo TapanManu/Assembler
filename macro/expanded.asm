@@ -28,9 +28,9 @@ FIRST	STL	RETADR
 	CLEAR	X
 	LDT	LENGTH
 	LDCH	BUFFER,X
-TD	=X'?1#####'	'
+	TD	=X'05'
 	JEQ	*-3
-WD	=X'?1#####'	'
+	WD	=X'05'
 	TIXR	T
 	JLT	*-14
 	J	CLOOP
@@ -38,9 +38,9 @@ WD	=X'?1#####'	'
 	CLEAR	X
 	LDT	THREE
 	LDCH	EOF,X
-TD	=X'?1#####'	'
+	TD	=X'05'
 	JEQ	*-3
-WD	=X'?1#####'	'
+	WD	=X'05'
 	TIXR	T
 	JLT	*-14
 	J	@RETADR

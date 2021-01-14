@@ -72,6 +72,7 @@ void write_source(char label[],char opcode[],char operand[]){
 }
 
 void get_line(char label[],char opcode[],char operand[]){
+   // printf("lab:%s,opc:%s\n",label,opcode);
     int j=-1;
     int k=0,l=0;
     int len = -1;
@@ -82,9 +83,10 @@ void get_line(char label[],char opcode[],char operand[]){
     oprnew = (char*)malloc(50);
     char args[10][20];
     if(expanding == 1){
-        printf("operand:%s\n",operand);
+        //printf("operand:%s\n",operand);
         for(int i=0;i<strlen(operand);i++){
             if(operand[i]=='?'){
+                
                 j = i+1;
                 l = j;
                 int posarg;
@@ -93,7 +95,7 @@ void get_line(char label[],char opcode[],char operand[]){
                 strcpy(temp,substr(operand,l,len));
                 strcat(temp,args[k-1]);
                 sscanf(temp,"%d",&posarg);
-                printf("ARGUMENT:%s\n",ARGTAB[posarg-1]);
+                //printf("ARGUMENT:%s\n",ARGTAB[posarg-1]);
                 l+=(i+strlen(args[k]));
                 
                 for(int y=0;y<strlen(ARGTAB[posarg-1]);y++){
@@ -256,7 +258,7 @@ void expand(int mac_indx,char args[]){
 
 
     int startloc = NAMTAB[mac_indx][0];
-    printf("startloc:%d\n",startloc); 
+   // printf("startloc:%d\n",startloc); 
     int i=0;
     while(i <= startloc){
         fgets(defline,255,fp);
@@ -282,16 +284,19 @@ void expand(int mac_indx,char args[]){
         lab[0]=0; opc[0]=0; oper[0]=0;
         fgets(defline,255,fp);
         sscanf(defline,"%s %s %s",lab,opc,oper);
-        
+        printf("defline:%s\n",defline);
+        printf("lab:%s,opc:%s,oper:%s\n",lab,opc,oper);
         if(lab[0]=='.'){
             write_src(defline);
             continue;
         }
-        if(oper[0]==0){
+        if(oper[0]==0 || !strcmp(oper,"'")){    //avoid garbage char
             strcpy(oper,opc);
             strcpy(opc,lab);
             strcpy(lab,"");
         }
+        
+        
         if(!strcmp(opc,"MEND")){
             break;
         }
@@ -363,7 +368,7 @@ void define(FILE *fp,char label[],char oper[]){
                         err_flag = 2;   //argument not found
                     }
                      //replace the position value
-                     printf("ssssss:%d\n",s);
+                     //printf("ssssss:%d\n",s);
                     defline[replacepos] = s + '0';
                 }
             }
