@@ -105,7 +105,7 @@ void get_line(char label[],char opcode[],char operand[]){
                 
                 //i+=strlen(ARGTAB[posarg-1]);
                 //substituting args in argtab into positions
-                //TODO
+               
             }
             else if(operand[i]=='#'){
                 continue;
@@ -125,8 +125,11 @@ void processline(FILE* fp,char label[],char opcode[],char operand[]){
     found = 0;
     int macronum = read_namtab(opcode);        //  search for macro name
     if(found==1){
-       // printf("\tMACRO\n");
-        expand(macronum,operand);
+        //printf("%s",label);
+        if(!strcmp(label,"")){
+            label[0]=0;
+        }
+        expand(macronum,label,operand);
     }
     else if(!strcmp(opcode,"MACRO")){
         char* deflin;
@@ -241,7 +244,7 @@ void insert_namtab(char name[]){
     fclose(fp);
 }
 
-void expand(int mac_indx,char args[]){
+void expand(int mac_indx,char l[],char args[]){
     expanding = 1;
     int br=0; 
     int length = 0;
@@ -285,7 +288,7 @@ void expand(int mac_indx,char args[]){
         fgets(defline,255,fp);
         sscanf(defline,"%s %s %s",lab,opc,oper);
         printf("defline:%s\n",defline);
-        printf("lab:%s,opc:%s,oper:%s\n",lab,opc,oper);
+        
         if(lab[0]=='.'){
             write_src(defline);
             continue;
@@ -296,12 +299,16 @@ void expand(int mac_indx,char args[]){
             strcpy(lab,"");
         }
         
-        
+        printf("lab:%s,opc:%s,oper:%s\n",lab,opc,oper);
+        if(l[0]!=0){
+            strcpy(lab,l);
+        }
         if(!strcmp(opc,"MEND")){
             break;
         }
         get_line(lab,opc,oper);
         processline(fp,lab,opc,oper);
+        l[0]=0;
     }
     expanding = 0;
     fclose(fp);
