@@ -1,6 +1,6 @@
 HYP	0
 A	0
 B	1
-C	2
+C	100
 LOOP	3
 HALT	17

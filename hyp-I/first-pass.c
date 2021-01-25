@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <math.h>
 
-int locctr =0,len=0;
+int locctr =0,len=0,equ=0;
 char line[255];
 
 char optab[][15] = {"ADD","NEG","LOAD","STORE","JE","JL","JG","HLT"};
@@ -27,6 +27,13 @@ void ins_symtab(char label[]){
     FILE *out;
     out = fopen("symtab.txt","a");
     fprintf(out,"%s\t%d\n",label,locctr);
+    fclose(out);
+}
+
+void ins_sym(char label[],int oper){
+    FILE *out;
+    out = fopen("symtab.txt","a");
+    fprintf(out,"%s\t%d\n",label,oper);
     fclose(out);
 }
 
@@ -62,7 +69,7 @@ void first_pass(char label[],char opcode[], char operand[]){
     }
     else if(!strcmp(opcode,"EQU")){
         len = 0;
-        //load operand value into symtab
+        equ = 1;
     }
     else if(!strcmp(opcode,"END")){
         return;
@@ -99,7 +106,7 @@ int main(int argc, char* argv[]){
     while(fgets(line,255,fp)){
         label[0]=0;opcode[0]=0;operand[0]=0;
         sscanf(line,"%s\t%s\t%s",label,opcode,operand);
-        
+        equ=0;
         if(operand[0]==0){
             if(strcmp(opcode,"HLT")){
                 strcpy(operand,opcode);
@@ -110,8 +117,11 @@ int main(int argc, char* argv[]){
         printf("label:%s\topcode:%s\toperand:%s\n",label,opcode,operand);
         first_pass(label,opcode,operand);
         if(label[0]!=0)
-            ins_symtab(label);
-        write_inter(locctr,line);
+            if(equ==0)
+                ins_symtab(label);
+            else
+                ins_sym(label,get_intval(operand));
+        write_inter(locctr,line);                    
         locctr+=len;
         
     }
