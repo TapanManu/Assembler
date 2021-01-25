@@ -38,7 +38,7 @@ void ins_sym(char label[],int oper){
 }
 
 int ret_opval(char *val){
-    for(int i=0;i<7;i++){
+    for(int i=0;i<8;i++){
         if(!strcmp(optab[i],val)){
             return i;
         }
