@@ -5,10 +5,12 @@
 #include <math.h>
 
 int locctr = 0;
-int len = 0;
+int pgmlen = 0;
 int start = 0;
 int equ = 0;
 char OBJ[20];
+char *TEXT;
+int textlen = 0;
 
 char OPTAB[][5] = {"ADD","SUB","MUL","DIV","JZ","JNZ","JGTZ","JLTZ","CALL","RET","LD","ST","LDI","PUSH","POP","HLT"};
 char REGTAB[][5] = {"R0","R1","R2","R3","R4","R5","R6","R7","R8","R9","R10","R11","R12","R13","R14","R15"};
@@ -81,7 +83,45 @@ int get_operval(char operand[]){
     return val;
 }
 
-void process_op1(char opcode[],char operand[]){
+void init_text(int textstart){
+    TEXT = (char*)malloc(73);
+    strcpy(TEXT,"T^");
+    char ts[9];
+
+    snprintf(ts,sizeof(ts),"%06x",textstart);
+    strcat(TEXT,ts);
+    strcat(TEXT,"^");
+    strcat(TEXT,"00^");
+    textlen = 0;
+}
+
+void app_text(char objcode[]){
+    strcat(TEXT,objcode);
+    strcat(TEXT,"^");
+    textlen+=strlen(objcode);
+}
+
+void write_text(){
+    FILE *out;
+    out = fopen("out.obj","a");
+    char TL[5];
+    printf("%x\n",textlen);
+    snprintf(TL,sizeof(TL),"%02x",(textlen-1)/2);
+    TEXT[9] = TL[0];
+    TEXT[10] = TL[1];
+    fprintf(out,"%s\n",TEXT);
+    fclose(out);
+}
+
+//dummy writing
+void write_obj(char obj[]){
+    FILE *out;
+    out = fopen("out.obj","a");
+    fprintf(out,"%s\n",obj);
+    fclose(out);
+}
+
+void process_op1(int loc,char opcode[],char operand[]){
     int opc = ret_opval(opcode); // in decimal
     char oper[3][5];
     int k=0;
@@ -98,6 +138,12 @@ void process_op1(char opcode[],char operand[]){
     }
     oper[k][j]='\0';
     printf("OBJ:%x%x%x%x\n",opc,ret_regval(oper[0]),ret_regval(oper[1]),ret_regval(oper[2]));
+    snprintf(OBJ,sizeof(OBJ),"%x%x%x%x",opc,ret_regval(oper[0]),ret_regval(oper[1]),ret_regval(oper[2]));
+    if(textlen + strlen(OBJ) >= 60){
+        write_text();
+        init_text(loc);
+    }
+    app_text(OBJ);
 }
 
 void process_op2(int loc,char opcode[],char operand[]){
@@ -124,16 +170,34 @@ void process_op2(int loc,char opcode[],char operand[]){
         x = x - (loc+2);
     }
     printf("OBJ:%x%x%02x\n",opc,ret_regval(oper[0]),x);
+    snprintf(OBJ,sizeof(OBJ),"%x%x%02x",opc,ret_regval(oper[0]),x);
+    if(textlen + strlen(OBJ) >= 60){
+        write_text();
+        init_text(loc);
+    }
+    app_text(OBJ);
 }
 
 void process_op3(int loc,char opcode[],char operand[]){
     int opc = ret_opval(opcode);
     printf("OBJ:%x0%02x\n",opc,ret_symbol(operand) - (loc+2));
+    snprintf(OBJ,sizeof(OBJ),"%x0%02x",opc,ret_symbol(operand) - (loc+2));
+    if(textlen + strlen(OBJ) >= 60){
+        write_text();
+        init_text(loc);
+    }
+    app_text(OBJ);
 }
 
-void process_op4(char opcode[],char operand[]){
+void process_op4(int loc,char opcode[],char operand[]){
     int opc = ret_opval(opcode); // in decimal
     printf("OBJ:%x0\n",opc);
+    snprintf(OBJ,sizeof(OBJ),"%x0",opc);
+    if(textlen + strlen(OBJ) >= 60){
+        write_text();
+        init_text(loc);
+    }
+    app_text(OBJ);
 }
 
 void process_op5(int loc,char opcode[],char operand[]){
@@ -160,35 +224,72 @@ void process_op5(int loc,char opcode[],char operand[]){
         x = x - (loc+2);
     }
     printf("OBJ:%x%x%02x\n",opc,ret_regval(oper[0]),x);
+    snprintf(OBJ,sizeof(OBJ),"%x%x%02x",opc,ret_regval(oper[0]),x);
+    if(textlen + strlen(OBJ) >= 60){
+        write_text();
+        init_text(loc);
+    }
+    app_text(OBJ);
 }
 
-void process_op6(char opcode[],char operand[]){
+void process_op6(int loc,char opcode[],char operand[]){
     int opc = ret_opval(opcode);    
     printf("OBJ:%x%x\n",opc,ret_regval(operand));
+    snprintf(OBJ,sizeof(OBJ),"%x%x",opc,ret_regval(operand));
+    if(textlen + strlen(OBJ) >= 60){
+        write_text();
+        init_text(loc);
+    }
+    app_text(OBJ);
+}
+
+void write_header(char name[],int operval){
+    FILE *out;
+    out = fopen("out.obj","a");
+    fprintf(out,"H^%s^%06x^%06x\n",name,operval,pgmlen);
+    fclose(out);
+}
+
+void end_rec(char operand[]){
+    FILE *out;
+    out = fopen("out.obj","a");
+    int val = ret_symbol(operand);
+    if(val==-1){
+        val = start;
+    }
+    fprintf(out,"E^%06x\n",val);
+    fclose(out);
 }
 
 void second_pass(int loc,char label[],char opcode[],char operand[]){
     int indx=-1;
     if(!strcmp(opcode,"START")){
-        
+        start = get_operval(operand);
+        write_header(label,start);
     }
     else if(!strcmp(opcode,"EQU")){
+        write_text();
+        init_text(loc);
         return;
     }
     else if(!strcmp(opcode,"DB")){
-        printf("OBJ:%02x\n",get_operval(operand));
+        printf("%02x\n",get_operval(operand));
+        snprintf(OBJ,sizeof(OBJ),"%02x\n",get_operval(operand));
+        app_text(OBJ);
     }
     else if(!strcmp(opcode,"END")){
+        write_text();
+        end_rec(operand);
         return;
     }
     else if((indx = ret_opval(opcode))!=-1){
-        //printf("indx:%d\n",indx);
+        
         switch(indx){
             case 0:
             case 1:
             case 2:
             case 3:
-                process_op1(opcode,operand);
+                process_op1(loc,opcode,operand);
                 break;
             case 4:
             case 5:
@@ -201,7 +302,7 @@ void second_pass(int loc,char label[],char opcode[],char operand[]){
                 break;
             case 9:
             case 15:
-                process_op4(opcode,operand);
+                process_op4(loc,opcode,operand);
                 break;
             case 10:
             case 11:
@@ -210,7 +311,7 @@ void second_pass(int loc,char label[],char opcode[],char operand[]){
                 break;
             case 13:
             case 14:
-                process_op6(opcode,operand);
+                process_op6(loc,opcode,operand);
                 break;
             default: printf("error\n");
         }
@@ -224,12 +325,13 @@ void second_pass(int loc,char label[],char opcode[],char operand[]){
 
 int main(int argc, char* argv[]){
     FILE *fp;
-    int pgmlen = ret_symbol("PGMLEN");
+    pgmlen = ret_symbol("PGMLEN");
     fp  = fopen("inter.asm","r");
     clear_file("out.obj");
     char line[255];
     char label[20],opcode[20],operand[20];
     int loc = 0;
+    init_text(loc);
     while(fgets(line,255,fp)){
         loc = 0;
         label[0]=0; opcode[0]=0; operand[0]=0;

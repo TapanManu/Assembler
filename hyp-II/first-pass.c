@@ -117,7 +117,7 @@ int main(int argc, char* argv[]){
         write_inter(line);
         locctr+=len;
     }
-    int pgmlen = locctr - start;
+    int pgmlen = locctr - start - len;
     ins_symtab("PGMLEN",pgmlen);
     fclose(fp);
 }
