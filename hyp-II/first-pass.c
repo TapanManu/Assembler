@@ -14,14 +14,14 @@ char OPTAB[][15] = {"ADD","SUB","MUL","DIV","JZ","JNZ","JGTZ","JLTZ","CALL","RET
 void write_inter(char line[]){
     FILE *out;
     out = fopen("inter.asm","a");
-    fprintf(out,"%x\t%s",locctr,line);
+    fprintf(out,"%02x\t%s",locctr,line);
     fclose(out);
 }
 
 void ins_symtab(char label[],int loc){
     FILE *out;
     out = fopen("symtab.txt","a");
-    fprintf(out,"%s\t%x\n",label,loc);
+    fprintf(out,"%s\t%02x\n",label,loc);
     fclose(out);
 }
 
@@ -117,5 +117,7 @@ int main(int argc, char* argv[]){
         write_inter(line);
         locctr+=len;
     }
+    int pgmlen = locctr - start;
+    ins_symtab("PGMLEN",pgmlen);
     fclose(fp);
 }
