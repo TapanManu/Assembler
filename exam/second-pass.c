@@ -12,12 +12,65 @@ int start = 0;
 int len = 0;
 int pgmlen =0;
 char OBJ[20];
+char *TEXT;
+int textlen=0;
 
-
-void write_inter(char line[]){
+void write_head(){
     FILE *out;
-    out = fopen("inter.asm","a");
-    fprintf(out,"%03x\t%s",locctr,line);
+    out = fopen("out.obj","a");
+    //max address space is 4k, hence start is of only 3 digits
+    snprintf(OBJ,sizeof(OBJ),"H^%03x^%06x\n",start,pgmlen);
+    fputs(OBJ,out);
+    fclose(out);
+}
+
+void write_end(){
+    FILE *out;
+    out = fopen("out.obj","a");
+    //max address space is 4k, hence start is of only 3 digits
+    snprintf(OBJ,sizeof(OBJ),"E^%03x\n",start);
+    fputs(OBJ,out);
+    fclose(out);
+}
+
+void init_text(int loc){
+    FILE *out;
+    out = fopen("out.obj","a");
+    //max address space is 4k, hence start is of only 3 digits
+    TEXT = (char*)malloc(80);
+    char TS[5];
+    snprintf(TS,sizeof(TS),"%03x",loc);
+    strcpy(TEXT,"T^");
+    strcat(TEXT,TS);
+    strcat(TEXT,"^");
+    strcat(TEXT,"00^");
+    textlen = 0;
+    fclose(out);
+}
+
+void write_text(int textlen){
+    FILE *out;
+    out = fopen("out.obj","a");
+    char TL[5];
+    snprintf(TL,sizeof(TL),"%02x",(textlen)/2);
+    TEXT[6] = TL[0];
+    TEXT[7] = TL[1];
+    fprintf(out,"%s\n",TEXT);
+    fclose(out);
+}
+
+void app_text(char OBJ[]){
+    textlen+=strlen(OBJ);
+    strcat(TEXT,OBJ);
+    strcat(TEXT,"^");
+}
+
+//dummy obj file
+void write_out(char OBJ[]){
+    FILE *out;
+    out = fopen("out.obj","a");
+    
+    fputs(OBJ,out);
     fclose(out);
 }
 
@@ -91,12 +144,24 @@ void format1(int loc,char opc[],char oper[]){
     int op = readoptab(opc);
     snprintf(OBJ,sizeof(OBJ),"%x0",op);
     printf("obj:%s\n",OBJ);
+    if(textlen + strlen(OBJ)>=60){
+        write_text(textlen);
+        init_text(loc);
+    }
+    app_text(OBJ);
+   // write_out(OBJ);
 }
 
 void format2(int loc,char opc[],char oper[]){
     int op = readoptab(opc);
     snprintf(OBJ,sizeof(OBJ),"%x%x",op,readregtab(oper));
     printf("obj:%s\n",OBJ);
+    if(textlen + strlen(OBJ)>=60){
+        write_text(textlen);
+        init_text(loc);
+    }
+    app_text(OBJ);
+   // write_out(OBJ);
 }
 
 void format3(int loc,char opc[],char oper[]){
@@ -120,16 +185,70 @@ void format3(int loc,char opc[],char oper[]){
 
     snprintf(OBJ,sizeof(OBJ),"%x%x%x%x",op,readregtab(OPERS[0]),readregtab(OPERS[1]),readregtab(OPERS[2]));
     printf("obj:%s\n",OBJ);
+    if(textlen + strlen(OBJ)>=60){
+        write_text(textlen);
+        init_text(loc);
+    }
+    app_text(OBJ);
+    // write_out(OBJ);
 }
 
 void format4(int loc,char opc[],char oper[]){
+    int op = readoptab(opc);
+    int len = strlen(oper);
+    char OPERS[3][20];
+    int k=0;
+    int j=0;
+    for(int i=0;oper[i]!='\0';i++){
+        if(oper[i]==','){
+            OPERS[k][j] = '\0';
+            k++;
+            j=0;
+        }
+        else{
+            OPERS[k][j] = oper[i];
+            j++;
+        }
+    }
+    OPERS[k][j]='\0';
     
+    int getflag = get_flag(OPERS[1]);
+    int symval = read_symtab(OPERS[1]);
+    int y;
+
+    if(getflag==1){     //for absolute value
+        y = symval;
+    }
+    else{
+        if(symval<(loc+2)){
+            y = (loc+2) - symval;
+            y = 0xff - y;
+        }
+        else{
+            y = symval - (loc+2);
+        }
+    }
+
+    snprintf(OBJ,sizeof(OBJ),"%x%x%02x",op,readregtab(OPERS[0]),y);
+    printf("obj:%s\n",OBJ);
+    if(textlen + strlen(OBJ)>=60){
+        write_text(textlen);
+        init_text(loc);
+    }
+    app_text(OBJ);
+    // write_out(OBJ);
 }
 
 void format5(int loc,char opc[],char oper[]){
     int op = readoptab(opc);
     snprintf(OBJ,sizeof(OBJ),"%x%03x",op,read_symtab(oper));
     printf("obj:%s\n",OBJ);
+    if(textlen + strlen(OBJ)>=60){
+        write_text(textlen);
+        init_text(loc);
+    }
+    app_text(OBJ);
+    // write_out(OBJ);
 }
 void secondpass(int loc,char label[],char opc[],char operand[]){
     int indx = -1;
@@ -141,6 +260,14 @@ void secondpass(int loc,char label[],char opc[],char operand[]){
         //skip
     }
     else if(!strcmp(opc,"DB")){
+        snprintf(OBJ,sizeof(OBJ),"%04x",get_operval(operand));
+        printf("obj:%s\n",OBJ);
+       // write_out(OBJ);
+        if(textlen + strlen(OBJ)>=60){
+            write_text(textlen);
+            init_text(loc);
+            }
+        app_text(OBJ);
         return;
     }
     else if(!strcmp(opc,"END")){
@@ -187,6 +314,8 @@ int main(){
     int loc = 0;
     char label[20],opcode[20],operand[20],comment[20];
     clear_file("out.obj");
+    write_head();
+    init_text(loc);
     while(fgets(line,255,fp)){
         skip = 0;
         label[0]=0; opcode[0]=0; operand[0] = 0; comment[0] = 0;
@@ -218,7 +347,8 @@ int main(){
             secondpass(loc,label,opcode,operand);
         
     }
-    printf("%d",pgmlen);
+    write_text(textlen);
+    write_end();
     fclose(fp);
     return 0;
 }
